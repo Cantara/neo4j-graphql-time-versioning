@@ -154,7 +154,7 @@ public class UndertowApplication {
 
         JsonSchemaBasedSpecification specification;
 
-        String graphqlSchemaLocation = "graphqlschemas/accesscontrol.graphql";
+        String graphqlSchemaLocation = "src/test/resources/graphqlschemas/accesscontrol.graphql";
 
         File graphQLFile = new File(graphqlSchemaLocation);
 
