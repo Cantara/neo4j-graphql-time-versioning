@@ -5,8 +5,8 @@ import com.exoreaction.xorcery.tbv.api.specification.Specification;
 import com.exoreaction.xorcery.tbv.graphql.directives.DomainDirective;
 import com.exoreaction.xorcery.tbv.graphql.directives.LinkDirective;
 import com.exoreaction.xorcery.tbv.graphql.directives.ReverseLinkDirective;
-import com.exoreaction.xorcery.tbv.neo4j.Neo4jInitializer;
-import com.exoreaction.xorcery.tbv.neo4j.Neo4jPersistence;
+import com.exoreaction.xorcery.tbv.neo4j.EmbeddedNeo4jInitializer;
+import com.exoreaction.xorcery.tbv.neo4j.EmbeddedNeo4jPersistence;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLNeo4jTBVLanguage;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLNeo4jTBVSchemas;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.jsonschema.GraphQLToJsonConverter;
@@ -191,7 +191,7 @@ public class UndertowApplication {
                 "neo4j.cypher.show", "false",
                 "neo4j.schema.drop-existing-indexes", "false"
         );
-        Neo4jPersistence persistence = new Neo4jInitializer().initialize("/ns", map, specification.getManagedDomains(), specification);
+        EmbeddedNeo4jPersistence persistence = new EmbeddedNeo4jInitializer().initialize("/ns", map, specification.getManagedDomains(), specification);
 
         LOG.info("Initializing namespace-controller ...");
 
@@ -244,7 +244,7 @@ public class UndertowApplication {
     public void start() {
         LOG.info("Starting Undertow ...");
         server.start();
-        LOG.info("Started Linked Data Store server. PID {}", ProcessHandle.current().pid());
+        LOG.info("Started Time Based Versioning document server. PID {}", ProcessHandle.current().pid());
         LOG.info("Listening on {}:{}", host, port);
     }
 

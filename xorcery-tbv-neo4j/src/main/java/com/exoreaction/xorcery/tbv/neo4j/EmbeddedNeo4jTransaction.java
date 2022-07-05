@@ -75,7 +75,7 @@ class EmbeddedNeo4jTransaction implements Transaction {
         return executeCypher(query, params);
     }
 
-    Flowable<Record> executeCypherAsync(String query, Map<String, Object> parameters) {
+    Flowable<Map<String, Object>> executeCypherAsync(String query, Map<String, Object> parameters) {
         if (logCypher) {
             String interactiveQuery = query;
             for (Map.Entry<String, Object> entry : parameters.entrySet()) {

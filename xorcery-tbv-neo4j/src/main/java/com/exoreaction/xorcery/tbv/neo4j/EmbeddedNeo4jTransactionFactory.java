@@ -3,9 +3,6 @@ package com.exoreaction.xorcery.tbv.neo4j;
 import com.exoreaction.xorcery.tbv.api.persistence.PersistenceException;
 import com.exoreaction.xorcery.tbv.api.persistence.Transaction;
 import com.exoreaction.xorcery.tbv.api.persistence.TransactionFactory;
-import org.neo4j.driver.AccessMode;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.SessionConfig;
 import org.neo4j.graphdb.GraphDatabaseService;
 
 import java.util.concurrent.CompletableFuture;
@@ -27,22 +24,19 @@ class EmbeddedNeo4jTransactionFactory implements TransactionFactory {
     }
 
     @Override
-    public Neo4jTransaction createTransaction(boolean readOnly) throws PersistenceException {
-        graphDb.beginTx();
-        Session session = driver.session(readOnly ? SessionConfig.builder().withDefaultAccessMode(AccessMode.READ).build() :
-                SessionConfig.builder().withDefaultAccessMode(AccessMode.WRITE).build());
-        return new Neo4jTransaction(session, logCypher);
+    public EmbeddedNeo4jTransaction createTransaction(boolean readOnly) throws PersistenceException {
+        return new EmbeddedNeo4jTransaction(graphDb, logCypher);
     }
 
     @Override
     public void close() {
-        driver.close();
+        // TODO close database?
     }
 
-    <T> T writeTransaction(Function<org.neo4j.driver.Transaction, T> work) {
+    <T> T writeTransaction(Function<org.neo4j.graphdb.Transaction, T> work) {
         boolean committed = false;
-        try (Session session = driver.session(SessionConfig.builder().withDefaultAccessMode(AccessMode.WRITE).build())) {
-            T result = session.writeTransaction(tx -> work.apply(tx));
+        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+            T result = work.apply(tx);
             committed = true;
             return result;
         } catch (PersistenceException e) {
@@ -60,10 +54,10 @@ class EmbeddedNeo4jTransactionFactory implements TransactionFactory {
         }
     }
 
-    <T> T readTransaction(Function<org.neo4j.driver.Transaction, T> work) {
+    <T> T readTransaction(Function<org.neo4j.graphdb.Transaction, T> work) {
         boolean committed = false;
-        try (Session session = driver.session(SessionConfig.builder().withDefaultAccessMode(AccessMode.READ).build())) {
-            T result = session.readTransaction(tx -> work.apply(tx));
+        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+            T result = work.apply(tx);
             committed = true;
             return result;
         } catch (PersistenceException e) {
@@ -81,10 +75,10 @@ class EmbeddedNeo4jTransactionFactory implements TransactionFactory {
         }
     }
 
-    <T> T readAutoCommit(Function<Session, T> work) {
+    <T> T readAutoCommit(Function<org.neo4j.graphdb.Transaction, T> work) {
         boolean committed = false;
-        try (Session session = driver.session(SessionConfig.builder().withDefaultAccessMode(AccessMode.READ).build())) {
-            T result = work.apply(session);
+        try (org.neo4j.graphdb.Transaction tx = graphDb.beginTx()) {
+            T result = work.apply(tx);
             committed = true;
             return result;
         } catch (PersistenceException e) {
