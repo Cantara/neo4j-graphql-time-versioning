@@ -1,0 +1,122 @@
+package com.exoreaction.xorcery.tbv.specification;
+
+import com.exoreaction.xorcery.tbv.api.specification.Specification;
+import com.exoreaction.xorcery.tbv.api.specification.SpecificationElement;
+import com.exoreaction.xorcery.tbv.schema.JsonSchema;
+import com.exoreaction.xorcery.tbv.schema.JsonSchema04Builder;
+import com.exoreaction.xorcery.tbv.schema.SchemaRepository;
+import com.exoreaction.xorcery.tbv.utils.FileAndClasspathReaderUtils;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.TypeDefinitionRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+public class JsonSchemaBasedSpecification implements Specification, SchemaRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JsonSchemaBasedSpecification.class);
+
+    public static JsonSchemaBasedSpecification create(String... specificationSchema) {
+        return create(null, null, specificationSchema);
+    }
+
+    public static JsonSchemaBasedSpecification create(TypeDefinitionRegistry typeDefinitionRegistry, GraphQLSchema graphQlSchema, String... specificationSchema) {
+        JsonSchema jsonSchema = null;
+        StringBuilder sb = new StringBuilder();
+        for (String schemaPathStr : specificationSchema) {
+            Path schemaPath = Paths.get(schemaPathStr);
+            if (schemaPath.toFile().isDirectory()) {
+                // directory
+                Pattern endsWithJsonPattern = Pattern.compile("(.*)[.][Jj][Ss][Oo][Nn]");
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(schemaPath)) {
+                    Iterator<Path> it = stream.iterator();
+                    while (it.hasNext()) {
+                        Path filePath = it.next();
+                        if (endsWithJsonPattern.matcher(filePath.toFile().getName()).matches()) {
+                            jsonSchema = schemaFromFile(jsonSchema, sb, filePath);
+                        }
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                jsonSchema = schemaFromFile(jsonSchema, sb, schemaPath);
+            }
+        }
+        LOG.info("{}", (sb.length() == 0 ? "No schemas configured!" : "Managed domains: " + sb.substring(1)));
+        return SpecificationJsonSchemaBuilder.createBuilder(typeDefinitionRegistry, graphQlSchema, jsonSchema).build();
+    }
+
+    private static JsonSchema schemaFromFile(JsonSchema jsonSchema, StringBuilder sb, Path path) {
+        String json = FileAndClasspathReaderUtils.readFileOrClasspathResource(path.toString());
+        if (json == null) {
+            throw new IllegalArgumentException("Unable to find resource: " + path.toString());
+        }
+        String filename = path.toFile().getName();
+        String schemaFilename = filename.substring(filename.lastIndexOf("/") + 1);
+        String managedDomain = schemaFilename.substring(0, schemaFilename.length() - ".json".length());
+        sb.append(" /" + managedDomain);
+        jsonSchema = new JsonSchema04Builder(jsonSchema, managedDomain, json).build();
+        return jsonSchema;
+    }
+
+    private final JsonSchema jsonSchema;
+
+    private final SpecificationElement root;
+
+    private final TypeDefinitionRegistry typeDefinitionRegistry;
+
+    private final GraphQLSchema graphQlSchema;
+
+    public JsonSchemaBasedSpecification() {
+        this.jsonSchema = null;
+        this.root = null;
+        this.typeDefinitionRegistry = null;
+        this.graphQlSchema = null;
+    }
+
+    public JsonSchemaBasedSpecification(JsonSchema jsonSchema, SpecificationElement root, TypeDefinitionRegistry typeDefinitionRegistry, GraphQLSchema graphQlSchema) {
+        this.jsonSchema = jsonSchema;
+        this.root = root;
+        this.typeDefinitionRegistry = typeDefinitionRegistry;
+        this.graphQlSchema = graphQlSchema;
+    }
+
+    @Override
+    public TypeDefinitionRegistry typeDefinitionRegistry() {
+        return typeDefinitionRegistry;
+    }
+
+    @Override
+    public GraphQLSchema schema() {
+        return graphQlSchema;
+    }
+
+    @Override
+    public SpecificationElement getRootElement() {
+        return root;
+    }
+
+    @Override
+    public Set<String> getManagedDomains() {
+        if (jsonSchema == null) {
+            return Collections.emptySet();
+        }
+        return jsonSchema.getSchemaNames();
+    }
+
+    @Override
+    public JsonSchema getJsonSchema() {
+        return jsonSchema;
+    }
+
+}

@@ -1,0 +1,10 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+<suite name="tests">
+
+    <test name="default" enabled="false">
+        <classes>
+            <class name="com.exoreaction.xorcery.tbv.neo4j.Neo4jPersistenceIntegrationTest" />
+        </classes>
+    </test>
+
+</suite>
