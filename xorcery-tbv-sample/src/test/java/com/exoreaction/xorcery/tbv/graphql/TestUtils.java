@@ -14,7 +14,11 @@ public class TestUtils {
     static final ObjectMapper mapper = new ObjectMapper();
 
     public static void deleteFolderAndContents(String neo4jEmbeddedDataFolder) throws IOException {
-        Files.walk(Path.of(neo4jEmbeddedDataFolder))
+        Path path = Path.of(neo4jEmbeddedDataFolder);
+        if (!Files.exists(path)) {
+            return;
+        }
+        Files.walk(path)
                 .sorted(Comparator.reverseOrder())
                 .map(Path::toFile)
                 .forEach(File::delete);
