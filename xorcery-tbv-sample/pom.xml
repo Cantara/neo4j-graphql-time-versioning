@@ -360,7 +360,7 @@
                 <!-- Antlr cypher grammar: https://www.opencypher.org/resources -->
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.7.2</version>
+                <version>4.10.1</version>
                 <executions>
                     <execution>
                         <goals>
