@@ -22,6 +22,7 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -603,6 +604,9 @@ public class EmbeddedNeo4jPersistence implements RxJsonPersistence {
 
     @Override
     public <T> T getInstance(Class<T> clazz) {
+        if (clazz.isAssignableFrom(GraphDatabaseService.class)) {
+            return (T) transactionFactory.graphDb;
+        }
         return null;
     }
 }

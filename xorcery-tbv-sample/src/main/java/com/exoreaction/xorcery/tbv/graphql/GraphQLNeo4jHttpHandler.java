@@ -25,6 +25,7 @@ import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.summary.ResultSummary;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphql.Cypher;
 import org.neo4j.graphql.Translator;
 import org.slf4j.Logger;
@@ -207,33 +208,59 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
         long beforeTranslation = System.currentTimeMillis();
 
         // translate query to Cypher and execute against neo4j
-        ZonedDateTime snapshot = ZonedDateTime.now();
         LOG.debug("GraphQL BEFORE transformation:\n{}\n", executionInput.getQuery());
         String query = GraphQLQueryTransformer.addTimeBasedVersioningArgumentValues(graphQlSchema, executionInput);
         LOG.debug("GraphQL AFTER transformation:\n{}\n", query);
         long afterTransformation = System.currentTimeMillis();
-        List<Cypher> cyphers = translator.translate(query, getParamsWithVersionIfMissing(snapshot, executionInput.getVariables()));
+        Map<String, Object> inputVariables = executionInput.getVariables();
+        Map<String, Object> paramsWithVersionIfMissing = getParamsWithVersionIfMissing(ZonedDateTime.now(), inputVariables);
+        ZonedDateTime snapshot = ZonedDateTime.parse((String) paramsWithVersionIfMissing.get("_version"));
+        List<Cypher> cyphers = translator.translate(query, paramsWithVersionIfMissing);
 
         long beforeNeo4j = System.currentTimeMillis();
         Driver driver = persistence.getInstance(Driver.class);
-        for (Cypher cypher : cyphers) {
-            LOG.debug("{}", cypher.toString());
-            LinkedHashMap<String, Object> params = new LinkedHashMap<>(cypher.component2());
-            params.putIfAbsent("_version", snapshot);
-            List<Map<String, Object>> resultAsMap;
-            try (Session session = driver.session()) {
-                Result result = session.run(cypher.component1(), params, TransactionConfig.builder()
-                        .withTimeout(Duration.ofSeconds(10)).build());
-                resultAsMap = result.list(Record::asMap);
-                ResultSummary resultSummary = result.consume();
+        GraphDatabaseService graphDb = persistence.getInstance(GraphDatabaseService.class);
+        if (driver != null) {
+            for (Cypher cypher : cyphers) {
+                LOG.debug("{}", cypher.toString());
+                LinkedHashMap<String, Object> params = new LinkedHashMap<>(cypher.component2());
+                params.putIfAbsent("_version", snapshot);
+                List<Map<String, Object>> resultAsMap;
+                try (Session session = driver.session()) {
+                    Result result = session.run(cypher.component1(), params, TransactionConfig.builder()
+                            .withTimeout(Duration.ofSeconds(10)).build());
+                    resultAsMap = result.list(Record::asMap);
+                    ResultSummary resultSummary = result.consume();
+                }
+                JsonNode jsonNode = JsonTools.toJsonNode(resultAsMap);
+                if (jsonNode.isArray()) {
+                    data.addAll((ArrayNode) jsonNode);
+                } else {
+                    data.add(jsonNode);
+                }
             }
-            JsonNode jsonNode = JsonTools.toJsonNode(resultAsMap);
-            if (jsonNode.isArray()) {
-                data.addAll((ArrayNode) jsonNode);
-            } else {
-                data.add(jsonNode);
+        } else if (graphDb != null) {
+            for (Cypher cypher : cyphers) {
+                LOG.debug("{}", cypher.toString());
+                LinkedHashMap<String, Object> params = new LinkedHashMap<>(cypher.component2());
+                params.putIfAbsent("_version", snapshot);
+
+                List<Map<String, Object>> resultAsMap = graphDb.executeTransactionally(
+                        cypher.component1(),
+                        params,
+                        result -> result.stream().toList(),
+                        Duration.ofSeconds(10)
+                );
+
+                JsonNode jsonNode = JsonTools.toJsonNode(resultAsMap);
+                if (jsonNode.isArray()) {
+                    data.addAll((ArrayNode) jsonNode);
+                } else {
+                    data.add(jsonNode);
+                }
             }
         }
+
         long afterNeo4j = System.currentTimeMillis();
 
         ObjectNode duration = metadata.putObject("latency");
@@ -253,7 +280,7 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
 
     private LinkedHashMap<String, Object> getParamsWithVersionIfMissing(ZonedDateTime timeBasedVersion, Map<String, Object> theParams) {
         LinkedHashMap<String, Object> params = new LinkedHashMap<>(theParams);
-        params.putIfAbsent("_version", timeBasedVersion);
+        params.putIfAbsent("_version", timeBasedVersion.toString());
         return params;
     }
 }

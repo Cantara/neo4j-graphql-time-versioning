@@ -1,9 +1,11 @@
 package com.exoreaction.xorcery.tbv.neo4j;
 
+import apoc.cypher.CypherFunctions;
 import apoc.schema.Schemas;
 import com.exoreaction.xorcery.tbv.api.persistence.PersistenceInitializer;
 import com.exoreaction.xorcery.tbv.api.persistence.ProviderName;
 import com.exoreaction.xorcery.tbv.api.specification.Specification;
+import com.exoreaction.xorcery.tbv.neo4j.apoc.path.PathExplorer;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
@@ -63,14 +65,14 @@ public class EmbeddedNeo4jInitializer implements PersistenceInitializer {
     public EmbeddedNeo4jPersistence initialize(String defaultNamespace, Map<String, String> configuration, Set<String> managedDomains, Specification specification) {
         JavaUtilLoggingInitializer.initialize();
 
-        Path home = Path.of("target/neo4j/sampledata");
+        Path home = Path.of(configuration.get("neo4j.embedded.data.folder"));
         Map<String, String> settings = Map.of("dbms.security.procedures.unrestricted", "apoc.*,tbv.*");
         DatabaseManagementService managementService = new DatabaseManagementServiceBuilder(home)
                 .setConfigRaw(settings)
                 .build();
 
         String database = "neo4j";
-        GraphDatabaseService graphDb = null;
+        GraphDatabaseService graphDb;
         try {
             graphDb = managementService.database(database);
         } catch (DatabaseNotFoundException e) {
@@ -80,6 +82,8 @@ public class EmbeddedNeo4jInitializer implements PersistenceInitializer {
         Runtime.getRuntime().addShutdownHook(new Thread(managementService::shutdown));
 
         registerProcedure(graphDb, Schemas.class);
+        registerProcedure(graphDb, PathExplorer.class);
+        registerProcedure(graphDb, CypherFunctions.class);
 
         boolean logCypher = Boolean.parseBoolean(configuration.get("neo4j.cypher.show"));
         boolean dropExistingIndexes = Boolean.parseBoolean(ofNullable(configuration.get("neo4j.schema.drop-existing-indexes")).orElse("false"));

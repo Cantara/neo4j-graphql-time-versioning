@@ -94,7 +94,7 @@ public class UndertowApplication {
         pathHandler.addExactPath("/graphql", graphQLHttpHandler);
 
         pathHandler.addExactPath("/graphiql", Handlers.resource(new ClassPathResourceManager(
-                Thread.currentThread().getContextClassLoader(), "no/ssb/lds/graphql/graphiql"
+                Thread.currentThread().getContextClassLoader(), "com/exoreaction/xorcery/tbv/graphql"
         )).setDirectoryListingEnabled(false).addWelcomeFiles("graphiql.html"));
 
         pathHandler.addPrefixPath("/", namespaceController);
@@ -147,14 +147,12 @@ public class UndertowApplication {
         return definitionRegistry;
     }
 
-    public static UndertowApplication initializeUndertowApplication(int port) {
+    public static UndertowApplication initializeUndertowApplication(int port, String graphqlSchemaLocation, String neo4jEmbeddedDataFolder, String namespace) {
         LOG.info("Initializing Undertow server ...");
 
         LOG.info("Initializing specification ...");
 
         JsonSchemaBasedSpecification specification;
-
-        String graphqlSchemaLocation = "src/test/resources/graphqlschemas/accesscontrol.graphql";
 
         File graphQLFile = new File(graphqlSchemaLocation);
 
@@ -189,14 +187,15 @@ public class UndertowApplication {
                 "neo4j.driver.username", "neo4j",
                 "neo4j.driver.password", "PasSW0rd",
                 "neo4j.cypher.show", "false",
-                "neo4j.schema.drop-existing-indexes", "false"
+                "neo4j.schema.drop-existing-indexes", "false",
+                "neo4j.embedded.data.folder", neo4jEmbeddedDataFolder
         );
-        EmbeddedNeo4jPersistence persistence = new EmbeddedNeo4jInitializer().initialize("/ns", map, specification.getManagedDomains(), specification);
+        EmbeddedNeo4jPersistence persistence = new EmbeddedNeo4jInitializer().initialize(namespace, map, specification.getManagedDomains(), specification);
 
         LOG.info("Initializing namespace-controller ...");
 
         NamespaceController namespaceController = new NamespaceController(
-                "/ns",
+                namespace,
                 specification,
                 specification,
                 persistence
