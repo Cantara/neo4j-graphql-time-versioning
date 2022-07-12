@@ -15,7 +15,7 @@
     <description>xorcery-tbv-test</description>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>18</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
     </properties>
 

@@ -16,7 +16,7 @@
     <description>xorcery-tbv-neo4j-graphql</description>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>18</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
         <antlr4.visitor>true</antlr4.visitor>
         <antlr4.listener>true</antlr4.listener>
