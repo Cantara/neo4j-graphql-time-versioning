@@ -3,6 +3,8 @@ package com.exoreaction.xorcery.tbv.graphql;
 import com.exoreaction.xorcery.tbv.api.persistence.json.JsonTools;
 import com.exoreaction.xorcery.tbv.api.persistence.reactivex.RxJsonPersistence;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLQueryTransformer;
+import com.exoreaction.xorcery.tbv.neo4j.graphql.TBVGraphQLConstants;
+import com.exoreaction.xorcery.tbv.neo4j.graphql.TimeVersioningGraphQLToCypherTranslator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -27,7 +29,6 @@ import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphql.Cypher;
-import org.neo4j.graphql.Translator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,7 +80,7 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
     );
 
     private final GraphQLSchema graphQlSchema;
-    private final Translator translator;
+    private final TimeVersioningGraphQLToCypherTranslator translator;
     private final Set<String> domains;
     private final RxJsonPersistence persistence;
 
@@ -90,7 +93,7 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
      */
     public GraphQLNeo4jHttpHandler(GraphQLSchema graphQlSchema, Set<String> domains, RxJsonPersistence persistence) {
         this.graphQlSchema = Objects.requireNonNull(graphQlSchema);
-        this.translator = new Translator(graphQlSchema);
+        this.translator = new TimeVersioningGraphQLToCypherTranslator(graphQlSchema, domains);
         this.domains = domains;
         this.persistence = persistence;
     }
@@ -143,6 +146,7 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
 
         exchange.startBlocking();
         ExecutionInput.Builder executionInputBuilder = ExecutionInput.newExecutionInput();
+        ParamsAndTimeVersion paramsAndTimeVersion = new ParamsAndTimeVersion(Collections.emptyMap(), ZonedDateTime.now());
         if (method.equals(POST)) {
             if (IS_GRAPHQL.resolve(exchange)) {
                 executionInputBuilder.query(toString(exchange));
@@ -150,7 +154,8 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
                 JsonNode json = toJson(exchange);
                 executionInputBuilder.query(json.get("query").textValue());
                 if (json.has("variables") && !json.get("variables").isNull()) {
-                    executionInputBuilder.variables(JsonTools.toMap(json.get("variables")));
+                    Map<String, Object> variables = new LinkedHashMap<>(JsonTools.toMap(json.get("variables")));
+                    paramsAndTimeVersion = separateParamsAndTimeVersion(variables);
                 }
                 if (json.has("operationName")) {
                     executionInputBuilder.operationName(json.get("operationName").textValue());
@@ -170,12 +175,18 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
             operationName.ifPresent(executionInputBuilder::operationName);
 
             Optional<String> variables = extractParam(parameters, "variables");
-            variables.map(JsonTools::toJsonNode).map(JsonTools::toMap).ifPresent(executionInputBuilder::variables);
+            paramsAndTimeVersion = variables
+                    .map(JsonTools::toJsonNode)
+                    .map(JsonTools::toMap)
+                    .map(this::separateParamsAndTimeVersion)
+                    .orElseGet(() -> separateParamsAndTimeVersion(new LinkedHashMap<>()));
 
         } else {
             exchange.setStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
             return;
         }
+
+        executionInputBuilder.variables(paramsAndTimeVersion.getParams());
 
         ExecutionInput executionInput = executionInputBuilder.build();
 
@@ -212,23 +223,25 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
         String query = GraphQLQueryTransformer.addTimeBasedVersioningArgumentValues(graphQlSchema, executionInput);
         LOG.debug("GraphQL AFTER transformation:\n{}\n", query);
         long afterTransformation = System.currentTimeMillis();
-        Map<String, Object> inputVariables = executionInput.getVariables();
-        Map<String, Object> paramsWithVersionIfMissing = getParamsWithVersionIfMissing(ZonedDateTime.now(), inputVariables);
-        ZonedDateTime snapshot = ZonedDateTime.parse((String) paramsWithVersionIfMissing.get("_version"));
-        List<Cypher> cyphers = translator.translate(query, paramsWithVersionIfMissing);
+
+        ZonedDateTime timeVersion = paramsAndTimeVersion.getTimeVersion();
+        List<Cypher> cyphers = translator.translate(query, paramsAndTimeVersion.getParams(), timeVersion);
 
         long beforeNeo4j = System.currentTimeMillis();
         Driver driver = persistence.getInstance(Driver.class);
         GraphDatabaseService graphDb = persistence.getInstance(GraphDatabaseService.class);
         if (driver != null) {
             for (Cypher cypher : cyphers) {
-                LOG.debug("{}", cypher.toString());
-                LinkedHashMap<String, Object> params = new LinkedHashMap<>(cypher.component2());
-                params.putIfAbsent("_version", snapshot);
+                LOG.debug("EXECUTING Cypher through neo4j driver api: {}", cypher.toString());
                 List<Map<String, Object>> resultAsMap;
                 try (Session session = driver.session()) {
-                    Result result = session.run(cypher.component1(), params, TransactionConfig.builder()
-                            .withTimeout(Duration.ofSeconds(10)).build());
+                    Result result = session.run(
+                            cypher.component1(),
+                            cypher.component2(),
+                            TransactionConfig.builder()
+                                    .withTimeout(Duration.ofSeconds(10))
+                                    .build()
+                    );
                     resultAsMap = result.list(Record::asMap);
                     ResultSummary resultSummary = result.consume();
                 }
@@ -241,17 +254,13 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
             }
         } else if (graphDb != null) {
             for (Cypher cypher : cyphers) {
-                LOG.debug("{}", cypher.toString());
-                LinkedHashMap<String, Object> params = new LinkedHashMap<>(cypher.component2());
-                params.putIfAbsent("_version", snapshot);
-
+                LOG.trace("EXECUTING Cypher on embedded neo4j: {}", cypher.toString());
                 List<Map<String, Object>> resultAsMap = graphDb.executeTransactionally(
                         cypher.component1(),
-                        params,
+                        cypher.component2(),
                         result -> result.stream().toList(),
                         Duration.ofSeconds(10)
                 );
-
                 JsonNode jsonNode = JsonTools.toJsonNode(resultAsMap);
                 if (jsonNode.isArray()) {
                     data.addAll((ArrayNode) jsonNode);
@@ -278,9 +287,35 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
         exchange.getResponseSender().send(jsonResult);
     }
 
-    private LinkedHashMap<String, Object> getParamsWithVersionIfMissing(ZonedDateTime timeBasedVersion, Map<String, Object> theParams) {
-        LinkedHashMap<String, Object> params = new LinkedHashMap<>(theParams);
-        params.putIfAbsent("_version", timeBasedVersion.toString());
-        return params;
+    private static class ParamsAndTimeVersion {
+        private final Map<String, Object> params;
+        private final ZonedDateTime timeVersion;
+
+        private ParamsAndTimeVersion(Map<String, Object> params, ZonedDateTime timeVersion) {
+            Objects.requireNonNull(params);
+            Objects.requireNonNull(timeVersion);
+            this.params = params;
+            this.timeVersion = timeVersion;
+        }
+
+        public Map<String, Object> getParams() {
+            return params;
+        }
+
+        public ZonedDateTime getTimeVersion() {
+            return timeVersion;
+        }
+    }
+
+    private ParamsAndTimeVersion separateParamsAndTimeVersion(Map<String, Object> params) {
+        Map<String, Object> cleanedParams = new LinkedHashMap<>(params);
+        String timeVersion;
+        if (cleanedParams.containsKey(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION)) {
+            timeVersion = (String) cleanedParams.remove(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION);
+        } else {
+            timeVersion = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now());
+        }
+        ZonedDateTime parsedTimeVersion = ZonedDateTime.parse(timeVersion, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        return new ParamsAndTimeVersion(cleanedParams, parsedTimeVersion);
     }
 }

@@ -5,20 +5,16 @@ import no.cantara.stingray.httpclient.StingrayHttpClient;
 import no.cantara.stingray.httpclient.StingrayHttpClients;
 
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
 public class TBVClient {
 
     private final String namespace;
-    private final String host;
-    private final int port;
-
     private StingrayHttpClient client;
 
     public TBVClient(String namespace, String host, int port) {
         this.namespace = namespace;
-        this.host = host;
-        this.port = port;
         client = StingrayHttpClients.factory()
                 .newClient()
                 .useTarget(target -> target.withScheme("http")
@@ -45,28 +41,28 @@ public class TBVClient {
         return response;
     }
 
-    public void checkNotFound(String entity, String resourceId, ZonedDateTime timestamp) {
+    public void checkNotFound(String entity, String resourceId, ZonedDateTime timeVersion) {
         client.get()
                 .path(namespace + "/" + entity + "/" + resourceId)
-                .query("timestamp", timestamp.toString())
+                .query("timestamp", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timeVersion))
                 .execute()
                 .hasStatusCode(404);
     }
 
-    public String read(String entity, String resourceId, ZonedDateTime timestamp) {
+    public String read(String entity, String resourceId, ZonedDateTime timeVersion) {
         String document = client.get()
                 .path(namespace + "/" + entity + "/" + resourceId)
-                .query("timestamp", timestamp.toString())
+                .query("timestamp", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timeVersion))
                 .execute()
                 .hasStatusCode(200)
                 .contentAsString();
         return document;
     }
 
-    public void write(String entity, String resourceId, ZonedDateTime timestamp, String document) {
+    public void write(String entity, String resourceId, ZonedDateTime timeVersion, String document) {
         client.put()
                 .path(namespace + "/" + entity + "/" + resourceId)
-                .query("timestamp", timestamp.toString())
+                .query("timestamp", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timeVersion))
                 .bodyJson(document)
                 .execute()
                 .isSuccessful();

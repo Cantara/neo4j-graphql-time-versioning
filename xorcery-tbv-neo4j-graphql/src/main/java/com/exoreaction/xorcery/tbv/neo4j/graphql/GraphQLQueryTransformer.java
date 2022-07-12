@@ -2,6 +2,7 @@ package com.exoreaction.xorcery.tbv.neo4j.graphql;
 
 import graphql.ExecutionInput;
 import graphql.analysis.QueryTraverser;
+import graphql.analysis.QueryVisitorFieldArgumentEnvironment;
 import graphql.analysis.QueryVisitorFieldEnvironment;
 import graphql.analysis.QueryVisitorInlineFragmentEnvironment;
 import graphql.analysis.QueryVisitorStub;
@@ -16,8 +17,12 @@ import graphql.language.IntValue;
 import graphql.language.Node;
 import graphql.language.ObjectField;
 import graphql.language.ObjectValue;
+import graphql.language.OperationDefinition;
 import graphql.language.StringValue;
+import graphql.language.Type;
+import graphql.language.TypeName;
 import graphql.language.Value;
+import graphql.language.VariableDefinition;
 import graphql.language.VariableReference;
 import graphql.parser.Parser;
 import graphql.schema.GraphQLArgument;
@@ -27,10 +32,12 @@ import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.schema.GraphQLUnmodifiedType;
+import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static graphql.util.TraverserContext.Phase.LEAVE;
 
@@ -38,14 +45,21 @@ public class GraphQLQueryTransformer {
 
     public static String addTimeBasedVersioningArgumentValues(GraphQLSchema graphQlSchema, ExecutionInput executionInput) {
         Document document = new Parser().parseDocument(executionInput.getQuery());
+        AtomicBoolean atLeastOneReferenceToTimeVersion = new AtomicBoolean(false);
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
         QueryTraverser queryTraversal = QueryTraverser.newQueryTraverser()
                 .schema(graphQlSchema)
                 .operationName(executionInput.getOperationName())
                 .variables(executionInput.getVariables())
                 .document(document)
                 .build();
-        StringBuilder sb = new StringBuilder("{\n");
         queryTraversal.visitDepthFirst(new QueryVisitorStub() {
+            @Override
+            public TraversalControl visitArgument(QueryVisitorFieldArgumentEnvironment environment) {
+                return super.visitArgument(environment);
+            }
+
             @Override
             public void visitInlineFragment(QueryVisitorInlineFragmentEnvironment env) {
                 TraverserContext<Node> context = env.getTraverserContext();
@@ -88,12 +102,15 @@ public class GraphQLQueryTransformer {
                             .filter(a -> a.getType() instanceof GraphQLNamedType)
                             .filter(a -> "_Neo4jDateTimeInput".equals(((GraphQLNamedType) a.getType()).getName()))
                             .findFirst()
-                            .map(a -> Argument.newArgument()
-                                    .name(a.getName())
-                                    .value(VariableReference.newVariableReference()
-                                            .name("_version")
-                                            .build())
-                                    .build())
+                            .map(a -> {
+                                atLeastOneReferenceToTimeVersion.set(true);
+                                return Argument.newArgument()
+                                        .name(a.getName())
+                                        .value(VariableReference.newVariableReference()
+                                                .name(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION)
+                                                .build())
+                                        .build();
+                            })
                             .ifPresent(arguments::add);
                     for (Argument argument : arguments) {
                         if (i++ > 0) {
@@ -118,7 +135,50 @@ public class GraphQLQueryTransformer {
             }
         });
         sb.append("}\n");
-        return sb.toString();
+
+        List<OperationDefinition> operationDefinitions = document.getDefinitionsOfType(OperationDefinition.class);
+        StringBuilder qb = new StringBuilder();
+        if (operationDefinitions.size() > 0) {
+            OperationDefinition operationDefinition = operationDefinitions.get(0); // TODO assume just one operation for now
+            OperationDefinition.Operation operation = operationDefinition.getOperation();
+            switch (operation) {
+                case QUERY:
+                    qb.append("query (");
+                    boolean first = true;
+                    for (VariableDefinition variableDefinition : operationDefinition.getVariableDefinitions()) {
+                        String name = variableDefinition.getName();
+                        if (name.equals(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION)) {
+                            continue;
+                        }
+                        if (first) {
+                            first = false;
+                        } else {
+                            qb.append(", ");
+                        }
+                        Type type = variableDefinition.getType();
+                        qb.append("$").append(name).append(": ");
+                        if (type instanceof TypeName) {
+                            qb.append(((TypeName) type).getName());
+                        } else {
+                            throw new IllegalArgumentException("");
+                        }
+                    }
+                    if (atLeastOneReferenceToTimeVersion.get()) {
+                        qb.append(", $").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": _Neo4jDateTimeInput");
+                    }
+                    qb.append(") ");
+                    //String q = AstPrinter.printAst(document);
+                    break;
+                case MUTATION:
+                    // TODO not supported
+                    break;
+                case SUBSCRIPTION:
+                    // TODO not supported
+                    break;
+            }
+        }
+        qb.append(sb);
+        return qb.toString();
     }
 
     private static void serializeValue(StringBuilder sb, Value value) {

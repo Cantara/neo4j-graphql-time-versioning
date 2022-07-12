@@ -2,9 +2,7 @@ package com.exoreaction.xorcery.tbv.graphql;
 
 import com.exoreaction.xorcery.tbv.api.persistence.reactivex.RxJsonPersistence;
 import com.exoreaction.xorcery.tbv.api.specification.Specification;
-import com.exoreaction.xorcery.tbv.graphql.directives.DomainDirective;
-import com.exoreaction.xorcery.tbv.graphql.directives.LinkDirective;
-import com.exoreaction.xorcery.tbv.graphql.directives.ReverseLinkDirective;
+import com.exoreaction.xorcery.tbv.graphql.directives.TBVDirectives;
 import com.exoreaction.xorcery.tbv.neo4j.EmbeddedNeo4jInitializer;
 import com.exoreaction.xorcery.tbv.neo4j.EmbeddedNeo4jPersistence;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLNeo4jTBVLanguage;
@@ -16,6 +14,7 @@ import com.exoreaction.xorcery.tbv.specification.JsonSchemaBasedSpecification;
 import com.exoreaction.xorcery.tbv.specification.SpecificationJsonSchemaBuilder;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;
+import graphql.schema.idl.SchemaPrinter;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -89,6 +88,10 @@ public class UndertowApplication {
         LOG.info("Initializing GraphQL Neo4j integration ...");
 
         GraphQLSchema schema = GraphQLNeo4jTBVSchemas.schemaOf(GraphQLNeo4jTBVLanguage.transformRegistry(definitionRegistry, true));
+
+        SchemaPrinter schemaPrinter = new SchemaPrinter();
+        System.out.printf("  --- BEGIN SCHEMA ---%n%s%n  --- END SCHEMA ---", schemaPrinter.print(schema));
+
         graphQLHttpHandler = new GraphQLNeo4jHttpHandler(schema, GraphQLNeo4jTBVSchemas.domains(definitionRegistry), persistence);
 
         pathHandler.addExactPath("/graphql", graphQLHttpHandler);
@@ -165,9 +168,9 @@ public class UndertowApplication {
         LOG.info("Transforming GraphQL schema to conform with GRANDstack compatible Neo4j modelling for Specification purposes");
         schema = GraphQLNeo4jTBVSchemas.schemaOf(GraphQLNeo4jTBVLanguage.transformRegistry(definitionRegistry, false)).transform(builder -> {
             builder.additionalDirectives(Set.of(
-                    DomainDirective.INSTANCE,
-                    LinkDirective.INSTANCE,
-                    ReverseLinkDirective.INSTANCE
+                    TBVDirectives.DOMAIN,
+                    TBVDirectives.LINK,
+                    TBVDirectives.REVERSE_LINK
             ));
         });
 

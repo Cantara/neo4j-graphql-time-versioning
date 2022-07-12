@@ -12,7 +12,8 @@
 
     <logger name="com.exoreaction.xorcery.tbv" level="TRACE"/>
     <logger name="com.exoreaction.xorcery.tbv.domain" level="DEBUG"/>
-    <logger name="graphql" level="DEBUG"/>
+    <logger name="graphql" level="TRACE"/>
+    <logger name="org.neo4j.graphql" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

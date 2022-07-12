@@ -95,12 +95,12 @@ public class CypherQueryTransformer {
             if (whereContext != null) {
                 result += whereContext.WHERE();
                 result += whereContext.SP();
-                result += "(_v.from <= $_version AND coalesce($_version < _v.to, true)) AND (";
+                result += "(_v.from <= $" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " AND coalesce($" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " < _v.to, true)) AND (";
                 setContextFunc(CypherParser.FilterExpressionContext.class, this::modifyFilterExpression);
                 result += whereContext.expression().accept(this);
                 result += ") ";
             } else {
-                result += " WHERE (_v.from <= $_version AND coalesce($_version < _v.to, true)) ";
+                result += " WHERE (_v.from <= $" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " AND coalesce($" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " < _v.to, true)) ";
             }
             return result;
         }
@@ -158,7 +158,7 @@ public class CypherQueryTransformer {
                 }
                 String versionRelationIdentifier = "_v" + vNum++;
                 sb.append("-[").append(versionRelationIdentifier).append(":VERSION_OF]->()");
-                sb.append(" WHERE (").append(versionRelationIdentifier).append(".from <= $_version AND coalesce($_version < ").append(versionRelationIdentifier).append(".to, true))");
+                sb.append(" WHERE (").append(versionRelationIdentifier).append(".from <= $").append(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION).append(" AND coalesce($").append(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION).append(" < ").append(versionRelationIdentifier).append(".to, true))");
                 return sb.toString();
             }
             Matcher m = Pattern.compile("\\((?<sourceNode>[^)]+)\\)-\\[:(?<sourceRelation>[^]]+)\\]->\\((?<targetNode>[^)]+)\\)").matcher(relationshipsPatternText);
@@ -179,7 +179,7 @@ public class CypherQueryTransformer {
             String versionRelationIdentifier = "_v" + vNum++;
             sb.append("<-[").append(versionRelationIdentifier).append(":VERSION_OF]-");
             sb.append("(").append(targetNode).append(")");
-            sb.append(" WHERE (").append(versionRelationIdentifier).append(".from <= $_version AND coalesce($_version < ").append(versionRelationIdentifier).append(".to, true))");
+            sb.append(" WHERE (").append(versionRelationIdentifier).append(".from <= $").append(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION).append(" AND coalesce($").append(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION).append(" < ").append(versionRelationIdentifier).append(".to, true))");
             return sb.toString();
         }
 

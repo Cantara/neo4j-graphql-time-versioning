@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.concurrent.TimeUnit;
 
 import static org.testng.Assert.assertEquals;
 
@@ -41,7 +42,8 @@ public class TimeBasedVersioningTest {
 
     @Test
     public void thatBasicReadThenWriteWorksWithTimeVersioning() {
-        TestUtils.deleteAll(application, "User", "Group");
+        TestUtils.deleteAll(application, "ns", "User", "Group")
+                .blockingAwait(10, TimeUnit.SECONDS);
         writeJohnsHistory();
 
         // did not exist a month ago
@@ -65,15 +67,16 @@ public class TimeBasedVersioningTest {
     }
 
     @Test
-    public void thatGraphQLQueryWorksWithTimeBasedVersioning() {
-        TestUtils.deleteAll(application, "User", "Group");
+    public void thatOneLevelGraphQLQueryWorksWithTimeBasedVersioning() {
+        TestUtils.deleteAll(application, "ns", "User", "Group")
+                .blockingAwait(10, TimeUnit.SECONDS);
 
         writeJohnsHistory();
 
         JsonNode twoDaysAgoResponse = client.sendGraphQLQuery(builder -> builder
                 .withQuery("""
                         query ($userId: String) {
-                           user(filter: {id: $userId}) {
+                           user(id: $userId) {
                              name
                            }
                          }""")
@@ -81,6 +84,7 @@ public class TimeBasedVersioningTest {
                 .withTimeVersion(ZonedDateTime.now().minusDays(2))
         );
 
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
         assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("name").asText(), "John Smith");
 
         JsonNode nowResponse = client.sendGraphQLQuery(builder -> builder
@@ -94,6 +98,7 @@ public class TimeBasedVersioningTest {
                 .withTimeVersion(ZonedDateTime.now())
         );
 
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
         assertEquals(nowResponse.get("data").get(0).get("user").get("name").asText(), "John Johnson");
 
         JsonNode sixMonthsIntoFutureResponse = client.sendGraphQLQuery(builder -> builder
@@ -107,7 +112,80 @@ public class TimeBasedVersioningTest {
                 .withTimeVersion(ZonedDateTime.now().plusMonths(6))
         );
 
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
         assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("name").asText(), "Jack Johnson");
+    }
+
+    @Test
+    public void thatTwoLevelGraphQLQueryWorksWithTimeBasedVersioning() {
+        TestUtils.deleteAll(application, "ns", "User", "Group")
+                .blockingAwait(10, TimeUnit.SECONDS);
+
+        writeJohnsHistory();
+
+        JsonNode twoDaysAgoResponse = client.sendGraphQLQuery(builder -> builder
+                .withQuery("""
+                        query ($userId: String) {
+                           user(id: $userId) {
+                             name
+                             group {
+                               name
+                             }
+                           }
+                         }""")
+                .addParam("userId", "john")
+                .withTimeVersion(ZonedDateTime.now().minusDays(2))
+        );
+
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("name").asText(), "John Smith");
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").size(), 0);
+
+        JsonNode nowResponse = client.sendGraphQLQuery(builder -> builder
+                .withQuery("""
+                        query ($userId: String) {
+                           user(filter: {id: $userId}) {
+                             name
+                             group {
+                               name
+                             }
+                           }
+                         }""")
+                .addParam("userId", "john")
+                .withTimeVersion(ZonedDateTime.now())
+        );
+
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(nowResponse.get("data").get(0).get("user").get("name").asText(), "John Johnson");
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get("name").asText(), "Software");
+
+        JsonNode sixMonthsIntoFutureResponse = client.sendGraphQLQuery(builder -> builder
+                .withQuery("""
+                        query ($userId: String) {
+                           user(filter: {id: $userId}) {
+                             name
+                             group {
+                               name
+                             }
+                           }
+                         }""")
+                .addParam("userId", "john")
+                .withTimeVersion(ZonedDateTime.now().plusMonths(6))
+        );
+
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("name").asText(), "Jack Johnson");
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get("name").asText(), "Software");
+    }
+
+    @Test
+    public void manualTest() throws InterruptedException {
+        TestUtils.deleteAll(application, "ns", "User", "Group")
+                .blockingAwait(10, TimeUnit.SECONDS);
+
+        writeJohnsHistory();
+
+        Thread.currentThread().join();
     }
 
     private void writeJohnsHistory() {

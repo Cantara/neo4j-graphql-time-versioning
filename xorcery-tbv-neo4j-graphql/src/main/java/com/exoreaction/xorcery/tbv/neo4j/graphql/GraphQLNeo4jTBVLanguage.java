@@ -125,13 +125,13 @@ public class GraphQLNeo4jTBVLanguage {
             if (!(typeDef instanceof ObjectTypeDefinition)) {
                 return; // not an object type
             }
-            if (typeDef.getDirective("domain") == null) {
+            if (!typeDef.hasDirective("domain")) {
                 return; // no domain directive
             }
 
             ObjectTypeDefinition tranformedTypeDef = ((ObjectTypeDefinition) typeDef).transform(builder -> {
                 builder.fieldDefinition(FieldDefinition.newFieldDefinition()
-                        .name("_tbv")
+                        .name(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION)
                         .type(NonNullType.newNonNullType()
                                 .type(TypeName.newTypeName()
                                         .name(typeDef.getName() + "_VersionOf")
@@ -463,14 +463,14 @@ public class GraphQLNeo4jTBVLanguage {
                     return;
                 }
                 FieldDefinition field = (FieldDefinition) child;
-                boolean isLink = field.getDirective("link") != null;
+                boolean isLink = field.hasDirective("link");
                 if (isLink) {
                     String relationName = field.getName();
                     String tbvResolutionCypher = String.format("MATCH (this)-[:%s]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n", relationName);
 
                     FieldDefinition transformedField = field.transform(builder -> builder
                             .directives(List.of(
-                                    field.getDirective("link"),
+                                    field.getDirectives("link").get(0),
                                     Directive.newDirective()
                                             .name("relation")
                                             .arguments(List.of(
@@ -513,7 +513,7 @@ public class GraphQLNeo4jTBVLanguage {
                     } else if (typeDefinition instanceof EnumTypeDefinition) {
                     } else if (typeDefinition instanceof ObjectTypeDefinition
                             || typeDefinition instanceof InterfaceTypeDefinition) {
-                        boolean isCypher = field.getDirective("cypher") != null;
+                        boolean isCypher = field.hasDirective("cypher");
                         if (isCypher) {
                             FieldDefinition transformedField = field.transform(builder -> builder
                                     .inputValueDefinitions(List.of(InputValueDefinition.newInputValueDefinition()
@@ -610,7 +610,7 @@ public class GraphQLNeo4jTBVLanguage {
                     return;
                 }
                 FieldDefinition field = (FieldDefinition) child;
-                boolean isLink = field.getDirective("link") != null;
+                boolean isLink = field.hasDirective("link");
                 if (isLink) {
                     String targetTypeName = unwrapTypeAndGetName(field.getType());
                     List<ObjectTypeDefinition> linkTargetObjectTypes = resolveAbstractTypeToConcreteTypes(typeDefinitionRegistry, targetTypeName).stream()
@@ -628,7 +628,7 @@ public class GraphQLNeo4jTBVLanguage {
                         while (!deque.isEmpty()) {
                             Deque<ObjectAndField> path = deque.pop();
                             ObjectAndField objectAndField = path.peek();
-                            if (objectAndField.typeDefinition.getDirective("domain") != null) {
+                            if (objectAndField.typeDefinition.hasDirective("domain")) {
                                 concretePaths.add(path);
                                 continue;
                             }

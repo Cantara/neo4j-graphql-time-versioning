@@ -91,7 +91,11 @@
             <dependency>
                 <groupId>com.graphql-java</groupId>
                 <artifactId>graphql-java</artifactId>
-                <version>15.0</version>
+                <version>16.2</version>
+                <!-- <version>15.0</version> -->
+                <!-- <version>16.2</version> -->
+                <!-- <version>17.3</version> -->
+                <!-- <version>18.2</version> -->
             </dependency>
             <dependency>
                 <groupId>org.antlr</groupId>
@@ -106,6 +110,11 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jul-to-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jcl-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
@@ -270,7 +279,7 @@
                     <!-- Antlr cypher grammar: https://www.opencypher.org/resources -->
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr4-maven-plugin</artifactId>
-                    <version>4.10.1</version>
+                    <version>4.7.2</version>
                     <executions>
                         <execution>
                             <goals>

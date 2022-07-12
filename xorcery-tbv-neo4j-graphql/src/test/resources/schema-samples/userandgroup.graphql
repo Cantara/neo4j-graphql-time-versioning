@@ -1,0 +1,33 @@
+directive @domain on OBJECT
+
+directive @link on FIELD_DEFINITION
+
+directive @virtual on FIELD_DEFINITION
+
+directive @index on FIELD_DEFINITION
+
+type User @domain {
+  # e.g. 'path.to.dataset'
+  id: String!
+  name: String!
+  group: [Group!] @link
+}
+
+type Group @domain {
+  # e.g. 'path.to.dataset$fieldName'
+  id: String!
+  name: String!
+  parent: [Group!] @link
+}
+
+#An RFC-3339 compliant Full Date Scalar
+scalar Date
+
+#An RFC-3339 compliant DateTime Scalar
+scalar DateTime
+
+#An RFC-3339 compliant Full Time Scalar
+scalar Time
+
+type Query {
+}
