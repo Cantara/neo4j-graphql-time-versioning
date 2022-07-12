@@ -1,4 +1,4 @@
-package com.exoreaction.xorcery.tbv.neo4j.graphql;
+package com.exoreaction.xorcery.tbv.neo4j.cypher;
 
 import com.exoreaction.xorcery.tbv.cypher.CypherBaseVisitor;
 import com.exoreaction.xorcery.tbv.cypher.CypherLexer;

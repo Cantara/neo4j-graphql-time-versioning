@@ -1,6 +1,7 @@
 package com.exoreaction.xorcery.tbv.neo4j.graphql;
 
 import com.exoreaction.xorcery.tbv.graphql.directives.TBVDirectives;
+import com.exoreaction.xorcery.tbv.neo4j.graphqltocypher.TimeVersioningGraphQLToCypherTranslator;
 import graphql.ExecutionInput;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;

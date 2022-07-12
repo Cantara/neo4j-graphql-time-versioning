@@ -1,4 +1,4 @@
-package com.exoreaction.xorcery.tbv.neo4j.graphql;
+package com.exoreaction.xorcery.tbv.neo4j.cypher;
 
 public class TBVCypherConstants {
 

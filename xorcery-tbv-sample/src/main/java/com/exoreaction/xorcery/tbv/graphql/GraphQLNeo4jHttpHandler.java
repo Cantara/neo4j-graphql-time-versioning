@@ -4,7 +4,7 @@ import com.exoreaction.xorcery.tbv.api.persistence.json.JsonTools;
 import com.exoreaction.xorcery.tbv.api.persistence.reactivex.RxJsonPersistence;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLQueryTransformer;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.TBVGraphQLConstants;
-import com.exoreaction.xorcery.tbv.neo4j.graphql.TimeVersioningGraphQLToCypherTranslator;
+import com.exoreaction.xorcery.tbv.neo4j.graphqltocypher.TimeVersioningGraphQLToCypherTranslator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
