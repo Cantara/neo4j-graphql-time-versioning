@@ -8,6 +8,7 @@ import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.Match;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.PatternElement;
+import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.ResultStatement;
 import org.neo4j.cypherdsl.core.Return;
@@ -480,5 +481,23 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
         ConditionContext conditionContext = (ConditionContext) operatorStack.pop();
         transformAndPushUp(condition);
+    }
+
+    static class RelationshipContext {
+    }
+
+    void enter(Relationship relationship) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), relationship.getClass().getSimpleName());
+        }
+        operatorStack.push(new RelationshipContext());
+    }
+
+    void leave(Relationship relationship) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), relationship.getClass().getSimpleName());
+        }
+        RelationshipContext relationshipContext = (RelationshipContext) operatorStack.pop();
+        transformAndPushUp(relationship);
     }
 }

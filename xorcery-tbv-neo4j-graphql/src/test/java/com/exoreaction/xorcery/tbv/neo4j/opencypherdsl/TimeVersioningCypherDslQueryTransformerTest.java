@@ -45,6 +45,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
 
         assertNotEquals(renderedTransformed, renderedOriginal);
 
+        System.out.printf("%s%n", renderedTransformed);
         // TODO strengthen transformation checks to check that they work
     }
 }

@@ -31,11 +31,7 @@ public class TimeVersioningGenericCypherDslQueryTransformer extends GenericCyphe
     }
 
     private MatchContext topLevelMatchTransformation(Deque<Object> operatorStack, MatchContext matchContext) {
-        StatementContext statementContext = (StatementContext) operatorStack.iterator().next();
-
-        PrettyPrintingVisitor renderingVisitor = new PrettyPrintingVisitor(statementContext.originalStatement.getContext(), Configuration.prettyPrinting());
-        matchContext.originalMatch.accept(renderingVisitor);
-        String matchCypher = renderingVisitor.getRenderedContent();
+        String matchCypher = renderCypherFor(operatorStack, matchContext.originalMatch);
 
         Matcher m = Pattern.compile("MATCH(.*)WHERE(.*)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(matchCypher);
         if (!m.matches()) {
@@ -45,12 +41,9 @@ public class TimeVersioningGenericCypherDslQueryTransformer extends GenericCyphe
         String patternMatch = m.group(1);
         String whereMatch = m.group(2);
 
-        System.out.printf("CYPHER: %s%n", matchCypher);
+        String transformedMatchWithWhere = "MATCH " + modifyMatchPattern(patternMatch) + " WHERE " + modifyWhereCondition(whereMatch);
 
-        String newMatch = "MATCH " + patternMatch + " WHERE (_v.from <= $" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " AND coalesce($" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " < _v.to, true)) AND ("
-                + whereMatch + ")";
-
-        Match transformedMatch = (Match) CypherParser.parseClause(newMatch);
+        Match transformedMatch = (Match) CypherParser.parseClause(transformedMatchWithWhere);
 
         GenericCypherDslQueryTransformer innerTransformer = new GenericCypherDslQueryTransformer(debug);
         transformedMatch.accept(innerTransformer);
@@ -58,4 +51,30 @@ public class TimeVersioningGenericCypherDslQueryTransformer extends GenericCyphe
 
         return transformedMatchContext;
     }
+
+    private String renderCypherFor(Deque<Object> operatorStack, Match originalMatch) {
+        StatementContext statementContext = (StatementContext) operatorStack.iterator().next();
+        PrettyPrintingVisitor renderingVisitor = new PrettyPrintingVisitor(statementContext.originalStatement.getContext(), Configuration.prettyPrinting());
+        originalMatch.accept(renderingVisitor);
+        String matchCypher = renderingVisitor.getRenderedContent();
+        return matchCypher;
+    }
+
+    private String modifyMatchPattern(String inputPattern) {
+        Matcher m = Pattern.compile("\\s*\\(([^:]*):([^)]*)\\)\\s*", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(inputPattern);
+        if (!m.matches()) {
+            throw new CypherDslQueryTransformerException("CYPHER: " + inputPattern + "\ndoes not match pattern.");
+        }
+        String nodeIdentifierLiteral = m.group(1);
+        String nodeTypeLiteral = m.group(2);
+        String modifiedResult = String.format("(_r:%s_R)<-[_v:VERSION_OF]-(%s)", nodeTypeLiteral, nodeIdentifierLiteral);
+        return modifiedResult;
+    }
+
+    String modifyWhereCondition(String inputCondition) {
+        return "(_v.from <= $" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION
+                + " AND coalesce($" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " < _v.to, true))"
+                + " AND (" + inputCondition + ")";
+    }
+
 }
