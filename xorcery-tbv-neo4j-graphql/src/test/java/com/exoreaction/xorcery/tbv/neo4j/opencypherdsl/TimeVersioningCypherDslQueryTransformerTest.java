@@ -6,7 +6,9 @@ import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.cypherdsl.parser.CypherParser;
 import org.testng.annotations.Test;
 
-public class CypherDslQueryCopierTest {
+import static org.testng.Assert.assertNotEquals;
+
+public class TimeVersioningCypherDslQueryTransformerTest {
 
     public static final String QUERY = """
             MATCH (user:User)
@@ -29,16 +31,20 @@ public class CypherDslQueryCopierTest {
             """;
 
     @Test
-    public void thatSomething() {
+    public void thatTimeVersioningTransformerDoesTransformTopLevelQuery() {
         Statement statement = CypherParser.parse(QUERY);
 
-        CypherDslQueryCopier copier = new CypherDslQueryCopier();
-        statement.accept(copier);
-        Statement statementCopy = copier.getStatementCopy();
+        TimeVersioningGenericCypherDslQueryTransformer transformer = new TimeVersioningGenericCypherDslQueryTransformer(false);
+        statement.accept(transformer);
+        Statement transformedStatement = (Statement) transformer.getOutput();
 
-        String renderedQuery = Renderer.getRenderer(Configuration.prettyPrinting()).render(statementCopy);
-        System.out.println();
-        System.out.printf("%s%n", renderedQuery);
+        Renderer renderer = Renderer.getRenderer(Configuration.prettyPrinting());
+
+        String renderedOriginal = renderer.render(statement);
+        String renderedTransformed = renderer.render(transformedStatement);
+
+        assertNotEquals(renderedTransformed, renderedOriginal);
+
+        // TODO strengthen transformation checks to check that they work
     }
-
 }
