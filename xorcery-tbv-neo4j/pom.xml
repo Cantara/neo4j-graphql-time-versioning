@@ -15,11 +15,9 @@
     <description>xorcery-tbv-neo4j</description>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>18</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
-        <antlr4.visitor>true</antlr4.visitor>
-        <antlr4.listener>true</antlr4.listener>
-        <neo4j.version>4.4.8</neo4j.version>
+        <neo4j.version>4.4.9</neo4j.version>
     </properties>
 
     <dependencies>
@@ -32,6 +30,12 @@
             <groupId>com.exoreaction.xorcery</groupId>
             <artifactId>xorcery-tbv-neo4j-plugin</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- Database dependencies -->
         <dependency>
@@ -67,16 +71,16 @@
             <artifactId>neo4j-java-driver</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -123,13 +127,6 @@
                             <encoding>UTF-8</encoding>
                             <additionalOptions>-Xdoclint:none</additionalOptions>
                         </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.ow2.asm</groupId>
-                                <artifactId>asm</artifactId>
-                                <version>6.2.1</version> <!-- Use newer version of ASM for JDK 11 support -->
-                            </dependency>
-                        </dependencies>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -261,7 +258,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version> <!-- Newer version do not yet work with Java 11 -->
+                <version>3.0.0-M7</version>
                 <configuration>
                     <excludes>
                         <exclude>%regex[.*IntegrationTest.*]</exclude>
@@ -289,19 +286,6 @@
                     <releaseProfiles>release</releaseProfiles>
                     <goals>deploy</goals>
                 </configuration>
-            </plugin>
-            <plugin>
-                <!-- Antlr cypher grammar: https://www.opencypher.org/resources -->
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.7.2</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

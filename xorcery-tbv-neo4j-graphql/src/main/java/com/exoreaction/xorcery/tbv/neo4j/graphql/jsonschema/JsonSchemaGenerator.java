@@ -1,7 +1,7 @@
 
 package com.exoreaction.xorcery.tbv.neo4j.graphql.jsonschema;
 
-import com.exoreaction.xorcery.tbv.graphql.directives.LinkDirective;
+import com.exoreaction.xorcery.tbv.graphql.directives.TBVDirectives;
 import com.exoreaction.xorcery.tbv.neo4j.graphql.GraphQLNeo4jTBVLanguage;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
@@ -194,7 +194,7 @@ public class JsonSchemaGenerator extends GraphQLTypeVisitorStub {
         }
 
         // add link node
-        if (node.getDirective(LinkDirective.NAME) != null) {
+        if (node.getDirective(TBVDirectives.LINK.getName()) != null) {
             propertyElements.put("type", "string");
 
             // link metadata field

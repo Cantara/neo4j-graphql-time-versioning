@@ -18,9 +18,7 @@
     <properties>
         <java.version>18</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
-        <antlr4.visitor>true</antlr4.visitor>
-        <antlr4.listener>true</antlr4.listener>
-        <neo4j.version>4.4.8</neo4j.version>
+        <neo4j.version>4.4.9</neo4j.version>
     </properties>
 
     <dependencies>
@@ -47,7 +45,7 @@
         <dependency>
             <groupId>org.neo4j.procedure</groupId>
             <artifactId>apoc</artifactId>
-            <version>4.4.0.6</version>
+            <version>4.4.0.7</version>
             <classifier>all</classifier>
             <scope>runtime</scope>
         </dependency>
@@ -80,11 +78,7 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-graphql-java</artifactId>
-            <version>1.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
+            <version>1.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -185,13 +179,6 @@
                             <encoding>UTF-8</encoding>
                             <additionalOptions>-Xdoclint:none</additionalOptions>
                         </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.ow2.asm</groupId>
-                                <artifactId>asm</artifactId>
-                                <version>6.2.1</version> <!-- Use newer version of ASM for JDK 11 support -->
-                            </dependency>
-                        </dependencies>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -326,7 +313,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version> <!-- Newer version do not yet work with Java 11 -->
+                <version>3.0.0-M7</version>
                 <configuration>
                     <excludes>
                         <exclude>%regex[.*IntegrationTest.*]</exclude>
@@ -355,19 +342,6 @@
                     <releaseProfiles>release</releaseProfiles>
                     <goals>deploy</goals>
                 </configuration>
-            </plugin>
-            <plugin>
-                <!-- Antlr cypher grammar: https://www.opencypher.org/resources -->
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.7.2</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

@@ -1,10 +1,9 @@
 module com.exoreaction.xorcery.tbv.api {
     requires io.reactivex.rxjava2;
     requires org.reactivestreams;
-    requires com.github.akarnokd.rxjava2jdk9interop;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
-    requires graphql.java;
+    requires com.graphqljava;
 
     exports com.exoreaction.xorcery.tbv.api.persistence;
     exports com.exoreaction.xorcery.tbv.api.persistence.flattened;

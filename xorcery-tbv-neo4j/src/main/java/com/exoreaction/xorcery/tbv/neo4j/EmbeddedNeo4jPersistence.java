@@ -473,7 +473,7 @@ public class EmbeddedNeo4jPersistence implements RxJsonPersistence {
         Flowable<Map<String, Object>> records = neoTx.executeCypherAsync(cypher.toString(), params);
         return records.map(record -> {
             DocumentKey key = getKeyFromRecord(record, ns, entityName);
-            if (((Node) record.get("m")).getProperty(DELETED_FIELD) != null && (Boolean) ((Node) record.get("m")).getProperty(DELETED_FIELD)) {
+            if (((Node) record.get("m")).hasProperty(DELETED_FIELD) && (Boolean) ((Node) record.get("m")).getProperty(DELETED_FIELD)) {
                 return new JsonDocument(key, (JsonNode) null);
             }
             JsonNode document = mapper.readTree((byte[]) ((Node) record.get("m")).getProperty(MSGPACK_FIELD));
@@ -522,7 +522,7 @@ public class EmbeddedNeo4jPersistence implements RxJsonPersistence {
         Flowable<Map<String, Object>> records = neoTx.executeCypherAsync(cypher.toString(), params);
         return records.map(record -> {
             DocumentKey key = getKeyFromRecord(record, ns, entityName);
-            if (((Node) record.get("m")).getProperty(DELETED_FIELD) != null && (Boolean) ((Node) record.get("m")).getProperty(DELETED_FIELD)) {
+            if (((Node) record.get("m")).hasProperty(DELETED_FIELD) && (Boolean) ((Node) record.get("m")).getProperty(DELETED_FIELD)) {
                 return new JsonDocument(key, (JsonNode) null);
             }
             JsonNode document = mapper.readTree((byte[]) ((Node) record.get("m")).getProperty(MSGPACK_FIELD));

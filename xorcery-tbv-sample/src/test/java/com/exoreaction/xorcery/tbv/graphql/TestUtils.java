@@ -2,6 +2,7 @@ package com.exoreaction.xorcery.tbv.graphql;
 
 import com.exoreaction.xorcery.tbv.api.persistence.Transaction;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.reactivex.Completable;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,11 +25,18 @@ public class TestUtils {
                 .forEach(File::delete);
     }
 
-    public static void deleteAll(UndertowApplication application, String namespace, String... entities) {
-        try (Transaction tx = application.getPersistence().createTransaction(false)) {
-            for (String entity : entities) {
-                application.getPersistence().deleteAllEntities(tx, namespace, entity, application.getSpecification());
+    public static Completable deleteAll(UndertowApplication application, String namespace, String... entities) {
+        Completable[] completables = new Completable[entities.length];
+        Transaction tx = application.getPersistence().createTransaction(false);
+        try {
+            for (int i = 0; i < entities.length; i++) {
+                completables[i] = application.getPersistence().deleteAllEntities(tx, namespace, entities[i], application.getSpecification());
             }
+        } catch (Throwable t) {
+            tx.close();
+            throw t;
         }
+        return Completable.mergeArray(completables)
+                .doOnTerminate(tx::close);
     }
 }

@@ -27,7 +27,7 @@ public class SagaInput {
         node.put("namespace", namespace);
         node.put("entity", entity);
         node.put("id", id);
-        node.put("version", DateTimeFormatter.ISO_ZONED_DATE_TIME.format(version));
+        node.put("version", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(version));
         if (source != null) {
             node.put("source", source);
         }
@@ -86,7 +86,7 @@ public class SagaInput {
 
     public ZonedDateTime version() {
         String versionStr = node.get("version").textValue();
-        return ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        return ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     public String versionAsString() {

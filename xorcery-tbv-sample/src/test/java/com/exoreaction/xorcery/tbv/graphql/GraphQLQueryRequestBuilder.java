@@ -1,5 +1,6 @@
 package com.exoreaction.xorcery.tbv.graphql;
 
+import com.exoreaction.xorcery.tbv.neo4j.graphql.TBVGraphQLConstants;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -114,7 +115,7 @@ public class GraphQLQueryRequestBuilder {
     }
 
     public GraphQLQueryRequestBuilder withTimeVersion(ZonedDateTime timeVersion) {
-        variables.put("_version", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timeVersion));
+        variables.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(timeVersion));
         return this;
     }
 

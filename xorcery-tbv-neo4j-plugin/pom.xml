@@ -17,12 +17,10 @@
     <properties>
         <java.version>11</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
-        <antlr4.visitor>true</antlr4.visitor>
-        <antlr4.listener>true</antlr4.listener>
         <jackson.version>2.13.3</jackson.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <neo4j.version>4.4.8</neo4j.version>
-        <neo4j-java-driver.version>4.4.6</neo4j-java-driver.version>
+        <neo4j.version>4.4.9</neo4j.version>
+        <neo4j-java-driver.version>4.4.9</neo4j-java-driver.version>
         <junit.version>4.13.2</junit.version>
         <assertj.version>3.23.1</assertj.version>
     </properties>
@@ -53,7 +51,7 @@
         <dependency>
             <groupId>org.neo4j.procedure</groupId>
             <artifactId>apoc</artifactId>
-            <version>4.4.0.6</version>
+            <version>4.4.0.7</version>
             <classifier>all</classifier>
         </dependency>
         <dependency>
@@ -108,6 +106,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <!-- TODO From 2012, please upgrade -->
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-library</artifactId>
             <version>1.3</version>
@@ -227,7 +226,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.0.0-M7</version>
                 <configuration>
                     <excludes>
                         <exclude>%regex[.*IntegrationTest.*]</exclude>
@@ -244,19 +243,6 @@
                     <releaseProfiles>release</releaseProfiles>
                     <goals>deploy</goals>
                 </configuration>
-            </plugin>
-            <plugin>
-                <!-- Antlr cypher grammar: https://www.opencypher.org/resources -->
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.10.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

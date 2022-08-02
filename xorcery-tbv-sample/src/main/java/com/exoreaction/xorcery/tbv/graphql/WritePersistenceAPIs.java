@@ -18,7 +18,7 @@ public class WritePersistenceAPIs {
 
     public static void createOrOverwrite(RxJsonPersistence persistence, Specification specification, SagaInput input) {
         String versionStr = input.versionAsString();
-        ZonedDateTime version = ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        ZonedDateTime version = ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         try (Transaction tx = persistence.createTransaction(false)) {
             persistence.createOrOverwrite(tx, new JsonDocument(new DocumentKey(input.namespace(), input.entity(), input.resourceId(), version), input.data()), specification).blockingAwait();
         }
@@ -26,7 +26,7 @@ public class WritePersistenceAPIs {
 
     public static void markAsDeleted(RxJsonPersistence persistence, Specification specification, SagaInput input) {
         String versionStr = input.versionAsString();
-        ZonedDateTime version = ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        ZonedDateTime version = ZonedDateTime.parse(versionStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         try (Transaction tx = persistence.createTransaction(false)) {
             persistence.markDocumentDeleted(
                     tx,

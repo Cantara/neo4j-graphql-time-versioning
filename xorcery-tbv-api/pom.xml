@@ -17,7 +17,7 @@
     <url>https://github.com/Cantara/</url>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>18</java.version>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
     </properties>
 
@@ -33,10 +33,6 @@
         <dependency>
             <groupId>io.reactivex.rxjava2</groupId>
             <artifactId>rxjava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.akarnokd</groupId>
-            <artifactId>rxjava2-jdk9-interop</artifactId>
         </dependency>
         <dependency>
             <groupId>com.graphql-java</groupId>

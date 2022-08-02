@@ -10,7 +10,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.exoreaction.xorcery.tbv" level="DEBUG"/>
+    <logger name="com.exoreaction.xorcery.tbv" level="TRACE"/>
     <logger name="com.exoreaction.xorcery.tbv.domain" level="DEBUG"/>
     <logger name="graphql" level="DEBUG"/>
 
