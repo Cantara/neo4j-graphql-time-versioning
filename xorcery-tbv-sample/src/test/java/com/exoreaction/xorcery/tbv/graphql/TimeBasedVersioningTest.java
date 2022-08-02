@@ -139,7 +139,8 @@ public class TimeBasedVersioningTest {
 
         assertEquals(twoDaysAgoResponse.get("data").size(), 1);
         assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("name").asText(), "John Smith");
-        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").size(), 0);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").size(), 1);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get(0).get("name").asText(), "Software");
 
         JsonNode nowResponse = client.sendGraphQLQuery(builder -> builder
                 .withQuery("""
@@ -155,9 +156,10 @@ public class TimeBasedVersioningTest {
                 .withTimeVersion(ZonedDateTime.now())
         );
 
-        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(nowResponse.get("data").size(), 1);
         assertEquals(nowResponse.get("data").get(0).get("user").get("name").asText(), "John Johnson");
-        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get("name").asText(), "Software");
+        assertEquals(nowResponse.get("data").get(0).get("user").get("group").size(), 1);
+        assertEquals(nowResponse.get("data").get(0).get("user").get("group").get(0).get("name").asText(), "Software");
 
         JsonNode sixMonthsIntoFutureResponse = client.sendGraphQLQuery(builder -> builder
                 .withQuery("""
@@ -173,9 +175,10 @@ public class TimeBasedVersioningTest {
                 .withTimeVersion(ZonedDateTime.now().plusMonths(6))
         );
 
-        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(sixMonthsIntoFutureResponse.get("data").size(), 1);
         assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("name").asText(), "Jack Johnson");
-        assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get("name").asText(), "Software");
+        assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("group").size(), 1);
+        assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("group").get(0).get("name").asText(), "Software");
     }
 
     //@Test
