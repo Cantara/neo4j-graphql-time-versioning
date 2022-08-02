@@ -22,7 +22,7 @@ import static java.util.Optional.ofNullable;
 public class GraphQLNeo4jTBVSchemasTest {
 
     @Test
-    public void thatSomething() {
+    public void thatUserAndGroupGraphQLQueryCanBeTranslatedToCorrectCypher() {
         File schemaFile = new File("src/test/resources/schema-samples/userandgroup.graphql");
         TypeDefinitionRegistry definitionRegistry = parseSchemaFile(schemaFile);
         GraphQLSchema schema = GraphQLNeo4jTBVSchemas.schemaOf(GraphQLNeo4jTBVLanguage.transformRegistry(definitionRegistry, false)).transform(builder -> {
