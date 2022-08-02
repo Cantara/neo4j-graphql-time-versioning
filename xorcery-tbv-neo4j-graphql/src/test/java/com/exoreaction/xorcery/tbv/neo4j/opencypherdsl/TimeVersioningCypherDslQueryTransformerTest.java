@@ -6,7 +6,7 @@ import org.neo4j.cypherdsl.core.renderer.Renderer;
 import org.neo4j.cypherdsl.parser.CypherParser;
 import org.testng.annotations.Test;
 
-import static org.testng.Assert.assertNotEquals;
+import static org.testng.Assert.assertEquals;
 
 public class TimeVersioningCypherDslQueryTransformerTest {
 
@@ -14,19 +14,19 @@ public class TimeVersioningCypherDslQueryTransformerTest {
             MATCH (user:User)
             WHERE user.id = $userId
             CALL {
-              WITH user
-              CALL {
-                WITH user
-                WITH user AS this
-                MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
-              }
-              RETURN collect(userGroup {
-                .name
-              }) AS userGroup
+            	WITH user
+            	CALL {
+            		WITH user
+            		WITH user AS this, $_tbv AS ver
+            		MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
+            	}
+            	RETURN collect(userGroup {
+            		.name
+            	}) AS userGroup
             }
             RETURN user {
-              .name,
-              group: userGroup
+            	.name,
+            	group: userGroup
             } AS user
             """;
 
@@ -34,18 +34,36 @@ public class TimeVersioningCypherDslQueryTransformerTest {
     public void thatTimeVersioningTransformerDoesTransformTopLevelQuery() {
         Statement statement = CypherParser.parse(QUERY);
 
-        TimeVersioningGenericCypherDslQueryTransformer transformer = new TimeVersioningGenericCypherDslQueryTransformer(false);
+        TimeVersioningCypherDslQueryTransformer transformer = new TimeVersioningCypherDslQueryTransformer(false);
         statement.accept(transformer);
         Statement transformedStatement = (Statement) transformer.getOutput();
 
         Renderer renderer = Renderer.getRenderer(Configuration.prettyPrinting());
 
-        String renderedOriginal = renderer.render(statement);
         String renderedTransformed = renderer.render(transformedStatement);
 
-        assertNotEquals(renderedTransformed, renderedOriginal);
-
-        System.out.printf("%s%n", renderedTransformed);
-        // TODO strengthen transformation checks to check that they work
+        assertEquals(renderedTransformed, """
+                MATCH (_r:User_R)<-[_v:VERSION_OF]-(user)
+                WHERE (_v.from <= $_tbv
+                  AND coalesce($_tbv < _v.to, true)
+                  AND user.id = $userId)
+                CALL {
+                  WITH user
+                  CALL {
+                    WITH user
+                    WITH user AS this, $_tbv AS ver
+                    MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n)
+                    WHERE (v.from <= ver
+                      AND coalesce(ver < v.to, true))
+                    RETURN n AS userGroup
+                  }
+                  RETURN collect(userGroup {
+                    .name
+                  }) AS userGroup
+                }
+                RETURN user {
+                  .name,
+                  group: userGroup
+                } AS user""");
     }
 }

@@ -11,9 +11,9 @@ import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TimeVersioningGenericCypherDslQueryTransformer extends GenericCypherDslQueryTransformer {
+public class TimeVersioningCypherDslQueryTransformer extends GenericCypherDslQueryTransformer {
 
-    public TimeVersioningGenericCypherDslQueryTransformer(boolean debug) {
+    public TimeVersioningCypherDslQueryTransformer(boolean debug) {
         super(debug);
         registerTransform(MatchContext.class, this::isTopLevelMatchClause, this::topLevelMatchTransformation);
     }
@@ -33,7 +33,8 @@ public class TimeVersioningGenericCypherDslQueryTransformer extends GenericCyphe
     private MatchContext topLevelMatchTransformation(Deque<Object> operatorStack, MatchContext matchContext) {
         String matchCypher = renderCypherFor(operatorStack, matchContext.originalMatch);
 
-        Matcher m = Pattern.compile("MATCH(.*)WHERE(.*)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(matchCypher);
+        Pattern pattern = Pattern.compile("MATCH(.*)WHERE(.*)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher m = pattern.matcher(matchCypher);
         if (!m.matches()) {
             throw new CypherDslQueryTransformerException();
         }
