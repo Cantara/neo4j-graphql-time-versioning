@@ -178,7 +178,7 @@ public class TimeBasedVersioningTest {
         assertEquals(twoDaysAgoResponse.get("data").get(0).get("user").get("group").get("name").asText(), "Software");
     }
 
-    @Test
+    //@Test
     public void manualTest() throws InterruptedException {
         TestUtils.deleteAll(application, "ns", "User", "Group")
                 .blockingAwait(10, TimeUnit.SECONDS);
