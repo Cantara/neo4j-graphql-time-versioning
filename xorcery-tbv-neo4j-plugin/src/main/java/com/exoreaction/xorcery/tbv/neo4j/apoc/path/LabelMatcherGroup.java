@@ -1,8 +1,13 @@
 package com.exoreaction.xorcery.tbv.neo4j.apoc.path;
 
 import apoc.path.LabelMatcher;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.traversal.Evaluation;
+
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.neo4j.graphdb.traversal.Evaluation.EXCLUDE_AND_CONTINUE;
 import static org.neo4j.graphdb.traversal.Evaluation.EXCLUDE_AND_PRUNE;
@@ -73,19 +78,22 @@ public class LabelMatcherGroup {
     }
 
     public Evaluation evaluate(Node node, boolean belowMinLevel) {
-        if (blacklistMatcher.matchesLabels(node)) {
+        Set<String> nodeLabels = StreamSupport.stream(node.getLabels().spliterator(), false)
+                .map(Label::name)
+                .collect(Collectors.toSet());
+        if (blacklistMatcher.matchesLabels(nodeLabels)) {
             return EXCLUDE_AND_PRUNE;
         }
 
-        if (terminatorNodeMatcher.matchesLabels(node)) {
+        if (terminatorNodeMatcher.matchesLabels(nodeLabels)) {
             return belowMinLevel ? EXCLUDE_AND_CONTINUE : INCLUDE_AND_PRUNE;
         }
 
-        if (endNodeMatcher.matchesLabels(node)) {
+        if (endNodeMatcher.matchesLabels(nodeLabels)) {
             return belowMinLevel ? EXCLUDE_AND_CONTINUE : INCLUDE_AND_CONTINUE;
         }
 
-        if (whitelistMatcher.isEmpty() || whitelistMatcher.matchesLabels(node)) {
+        if (whitelistMatcher.isEmpty() || whitelistMatcher.matchesLabels(nodeLabels)) {
             return endNodesOnly || belowMinLevel ? EXCLUDE_AND_CONTINUE : INCLUDE_AND_CONTINUE;
         }
 

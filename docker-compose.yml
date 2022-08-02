@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   neo4j:
-    image: "xor-tbv-neo4j:4.4.8"
+    image: "xor-tbv-neo4j:4.4.9"
     build: .
     ports:
     - "7474:7474"
