@@ -4,7 +4,7 @@
 
     <groupId>com.exoreaction.xorcery</groupId>
     <artifactId>xorcery-tbv-project</artifactId>
-    <version>0.2</version>
+    <version>0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>xorcery-tbv-project</name>
     <description>xorcery-tbv-project</description>
@@ -39,7 +39,7 @@
         <connection>scm:git:git://github.com/Cantara/neo4j-graphql-time-versioning.git</connection>
         <developerConnection>scm:git:git@github.com:Cantara/neo4j-graphql-time-versioning.git</developerConnection>
         <url>https://github.com/Cantara/neo4j-graphql-time-versioning/tree/master</url>
-        <tag>xorcery-tbv-project-0.2</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
