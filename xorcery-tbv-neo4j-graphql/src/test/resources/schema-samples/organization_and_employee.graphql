@@ -1,0 +1,23 @@
+directive @domain on OBJECT
+
+directive @link on FIELD_DEFINITION
+
+directive @virtual on FIELD_DEFINITION
+
+directive @index on FIELD_DEFINITION
+
+type Organization @domain {
+    id: ID!
+    name: String!
+    mother_organization: [Organization!] @link
+}
+
+type Employee @domain {
+    id: ID!
+    commonname: String!
+    supervisor: [Employee!] @link
+    organization: [Organization!] @link
+}
+
+type Query {
+}

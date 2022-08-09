@@ -35,16 +35,24 @@ public class TimeVersioningCypherDslQueryTransformer extends GenericCypherDslQue
 
         Pattern pattern = Pattern.compile("MATCH(.*)WHERE(.*)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
         Matcher m = pattern.matcher(matchCypher);
-        if (!m.matches()) {
-            throw new CypherDslQueryTransformerException();
+        String transformed;
+        if (m.matches()) {
+            String patternMatch = m.group(1);
+            String whereMatch = m.group(2);
+
+            transformed = "MATCH " + modifyMatchPattern(patternMatch) + " WHERE " + modifyWhereCondition(whereMatch);
+        } else {
+            // attempt to match without where clause
+            Pattern nonWherePattern = Pattern.compile("MATCH(.*)", Pattern.MULTILINE | Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+            Matcher nonWhereMatcher = nonWherePattern.matcher(matchCypher);
+            if (!nonWhereMatcher.matches()) {
+                throw new CypherDslQueryTransformerException();
+            }
+            String patternMatch = nonWhereMatcher.group(1);
+            transformed = "MATCH " + modifyMatchPattern(patternMatch) + " WHERE " + modifyWhereCondition(null);
         }
 
-        String patternMatch = m.group(1);
-        String whereMatch = m.group(2);
-
-        String transformedMatchWithWhere = "MATCH " + modifyMatchPattern(patternMatch) + " WHERE " + modifyWhereCondition(whereMatch);
-
-        Match transformedMatch = (Match) CypherParser.parseClause(transformedMatchWithWhere);
+        Match transformedMatch = (Match) CypherParser.parseClause(transformed);
 
         GenericCypherDslQueryTransformer innerTransformer = new GenericCypherDslQueryTransformer(debug);
         transformedMatch.accept(innerTransformer);
@@ -75,7 +83,7 @@ public class TimeVersioningCypherDslQueryTransformer extends GenericCypherDslQue
     String modifyWhereCondition(String inputCondition) {
         return "(_v.from <= $" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION
                 + " AND coalesce($" + TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION + " < _v.to, true))"
-                + " AND (" + inputCondition + ")";
+                + (inputCondition == null ? "" : " AND (" + inputCondition + ")");
     }
 
 }
