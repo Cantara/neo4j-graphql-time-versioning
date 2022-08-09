@@ -60,7 +60,7 @@ public class GraphQLNeo4jTBVSchemasTest {
 
         TimeVersioningGraphQLToCypherTranslator translator = new TimeVersioningGraphQLToCypherTranslator(schema, Set.of("User", "Group"));
         ZonedDateTime timeVersion = ZonedDateTime.now();
-        List<Cypher> cyphers = translator.translate(query, inputVariables, timeVersion);
+        List<Cypher> cyphers = translator.translate(query, inputVariables, timeVersion, false);
 
         for (Cypher cypher : cyphers) {
             Cypher c = new Cypher(cypher.component1(), cypher.component2(), cypher.component3(), cypher.component4());
@@ -110,7 +110,7 @@ public class GraphQLNeo4jTBVSchemasTest {
 
         TimeVersioningGraphQLToCypherTranslator translator = new TimeVersioningGraphQLToCypherTranslator(schema, Set.of("Organization", "Employee"));
         ZonedDateTime timeVersion = ZonedDateTime.now();
-        List<Cypher> cyphers = translator.translate(query, inputVariables, timeVersion);
+        List<Cypher> cyphers = translator.translate(query, inputVariables, timeVersion, false);
 
         for (Cypher cypher : cyphers) {
             Cypher c = new Cypher(cypher.component1(), cypher.component2(), cypher.component3(), cypher.component4());
