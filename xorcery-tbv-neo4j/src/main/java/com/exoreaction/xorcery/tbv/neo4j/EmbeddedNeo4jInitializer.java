@@ -55,9 +55,8 @@ public class EmbeddedNeo4jInitializer implements PersistenceInitializer {
     public Set<String> configurationKeys() {
         return Set.of(
                 "neo4j.cypher.show",
-                "neo4j.driver.url",
-                "neo4j.driver.username",
-                "neo4j.driver.password"
+                "neo4j.embedded.data.folder",
+                "neo4j.schema.drop-existing-indexes"
         );
     }
 
