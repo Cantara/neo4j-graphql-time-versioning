@@ -164,7 +164,12 @@ public class GraphQLQueryTransformer {
                         }
                     }
                     if (atLeastOneReferenceToTimeVersion.get()) {
-                        qb.append(", $").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": _Neo4jDateTimeInput");
+                        if (first) {
+                            first = false;
+                        } else {
+                            qb.append(", ");
+                        }
+                        qb.append("$").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": _Neo4jDateTimeInput");
                     }
                     qb.append(") ");
                     //String q = AstPrinter.printAst(document);
