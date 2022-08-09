@@ -1,4 +1,4 @@
-FROM neo4j:4.4.9
+FROM neo4j:4.4.10
 
 ENV APOC_VERSION 4.4.0.7
 ENV APOC_URI https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/${APOC_VERSION}/apoc-${APOC_VERSION}-all.jar
