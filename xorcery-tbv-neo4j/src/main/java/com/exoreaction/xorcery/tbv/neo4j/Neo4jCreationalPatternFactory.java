@@ -149,7 +149,7 @@ class Neo4jCreationalPatternFactory {
                     }
                 }
                 if (!found) {
-                    throw new IllegalStateException("Element not found: " + elem + " in type: " + typeDefinition.toString());
+                    throw new IllegalStateException("Element not found: " + elem + " in type: " + typeDefinition);
                 }
             }
             deque.removeFirst();
@@ -334,7 +334,7 @@ class Neo4jCreationalPatternFactory {
                 } else if (node.isBoolean()) {
                     data.add(node.booleanValue());
                 } else {
-                    throw new IllegalStateException("Got unsupported jackson-specific JsonNodeType " + node.getNodeType().name() + ", value: " + node.toString());
+                    throw new IllegalStateException("Got unsupported jackson-specific JsonNodeType " + node.getNodeType().name() + ", value: " + node);
                 }
             }
         }
