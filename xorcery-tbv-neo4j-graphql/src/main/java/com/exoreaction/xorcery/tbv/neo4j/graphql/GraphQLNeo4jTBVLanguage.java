@@ -666,7 +666,7 @@ public class GraphQLNeo4jTBVLanguage {
                                         sb.append("n");
                                         nNotBound = false;
                                     }
-                                    sb.append(":").append(last.objectName).append(")");
+                                    sb.append(":").append(last.objectName).append("_I").append(")");
                                     codedNameOfRelationship += "_" + last.fieldName + "_" + last.objectName;
                                 }
                                 ObjectAndField last = workPath.removeLast();
@@ -674,7 +674,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 if (nNotBound) {
                                     sb.append("n");
                                 }
-                                sb.append(":").append(last.objectName).append(")");
+                                sb.append(":").append(last.objectName).append("_I").append(")");
                                 sb.append("-[v:VERSION_OF]->(:RESOURCE) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n");
                                 String tbvReverseResolutionCypher = sb.toString();
                                 LOG.trace("REVERSE LINK CYPHER to Object {}: {}", targetObjectType.getName(), tbvReverseResolutionCypher);

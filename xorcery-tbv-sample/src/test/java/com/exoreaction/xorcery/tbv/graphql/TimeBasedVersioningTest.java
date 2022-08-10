@@ -181,6 +181,33 @@ public class TimeBasedVersioningTest {
         assertEquals(sixMonthsIntoFutureResponse.get("data").get(0).get("user").get("group").get(0).get("name").asText(), "Software");
     }
 
+    @Test
+    public void thatReverseTwoLevelGraphQLQueryWorksWithTimeBasedVersioning() {
+        TestUtils.deleteAll(application, "ns", "User", "Group")
+                .blockingAwait(10, TimeUnit.SECONDS);
+
+        writeJohnsHistory();
+
+        JsonNode twoDaysAgoResponse = client.sendGraphQLQuery(builder -> builder
+                .withQuery("""
+                        query ($groupId: String) {
+                           group(id: $groupId) {
+                             name
+                             reverseUserGroup {
+                               name
+                             }
+                           }
+                         }""")
+                .addParam("groupId", "sw")
+                .withTimeVersion(ZonedDateTime.now().minusDays(2))
+        );
+
+        assertEquals(twoDaysAgoResponse.get("data").size(), 1);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("name").asText(), "Software");
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("reverseUserGroup").size(), 1);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("reverseUserGroup").get(0).get("name").asText(), "John Smith");
+    }
+
     //@Test
     public void manualTest() throws InterruptedException {
         TestUtils.deleteAll(application, "ns", "User", "Group")

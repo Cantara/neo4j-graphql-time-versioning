@@ -377,7 +377,7 @@ public class EmbeddedNeo4jPersistence implements RxJsonPersistence {
         cypher.append("OPTIONAL MATCH (r").append(")<-[v:VERSION_OF]-() WHERE v.from <= version AND COALESCE(version < v.to, true) WITH r, v AS prevVersion, version\n");
         cypher.append("OPTIONAL MATCH (r").append(")<-[v:VERSION_OF]-() WHERE v.from > version WITH r, prevVersion, min(v.from) AS nextVersionFrom, version\n");
         cypher.append("CREATE (r)<-[v:VERSION_OF {from: version, to: coalesce(prevVersion.to, nextVersionFrom)}]-(m:")
-                .append(group.type()) // TODO do we need to label delete marker with all interfaces of the entity type?
+                .append(group.type()).append("_I") // TODO do we need to label delete marker with all interfaces of the entity type?
                 .append(":INSTANCE").append(")\n");
         cypher.append("SET prevVersion.to = version, m.").append(DELETED_FIELD).append(" = true\n");
         List<Map<String, Object>> entries = new ArrayList<>();
@@ -583,7 +583,7 @@ public class EmbeddedNeo4jPersistence implements RxJsonPersistence {
         cypher.append("OPTIONAL MATCH (r").append(")<-[v:VERSION_OF]-() WHERE v.from <= $version AND COALESCE($version < v.to, true) WITH r, v AS prevVersion\n");
         cypher.append("OPTIONAL MATCH (r").append(")<-[v:VERSION_OF]-() WHERE v.from > $version WITH r, prevVersion, min(v.from) AS nextVersionFrom\n");
         cypher.append("CREATE (r)<-[v:VERSION_OF {from: $version, to: coalesce(prevVersion.to, nextVersionFrom)}]-(m:")
-                .append(entityName) // TODO do we need to label delete marker with all interfaces of the entity type?
+                .append(entityName).append("_I") // TODO do we need to label delete marker with all interfaces of the entity type?
                 .append(":INSTANCE").append(")\n");
         cypher.append("SET prevVersion.to = $version, m.").append(DELETED_FIELD).append(" = true\n");
         return tx.executeCypherAsync(cypher.toString(), Map.of("rid", id, "version", version.toInstant().toEpochMilli())).ignoreElements();

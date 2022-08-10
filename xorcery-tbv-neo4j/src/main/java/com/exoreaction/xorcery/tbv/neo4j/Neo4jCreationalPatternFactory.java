@@ -104,9 +104,10 @@ class Neo4jCreationalPatternFactory {
         if (typeDefinition instanceof ObjectTypeDefinition) {
             implementedInterfaceNames = ((ObjectTypeDefinition) typeDefinition).getImplements().stream()
                     .map(a -> ((TypeName) a).getName())
+                    .map(name -> name + "_I")
                     .collect(Collectors.toList());
         }
-        implementedInterfaceNames.add(0, type);
+        implementedInterfaceNames.add(0, type + "_I");
         return implementedInterfaceNames;
     }
 
