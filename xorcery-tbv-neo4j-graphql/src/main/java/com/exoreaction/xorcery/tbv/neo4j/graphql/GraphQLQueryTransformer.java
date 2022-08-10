@@ -100,7 +100,7 @@ public class GraphQLQueryTransformer {
                     env.getFieldDefinition().getArguments().stream()
                             .filter(a -> "ver".equals(a.getName()))
                             .filter(a -> a.getType() instanceof GraphQLNamedType)
-                            .filter(a -> "_Neo4jDateTimeInput".equals(((GraphQLNamedType) a.getType()).getName()))
+                            .filter(a -> "Long".equals(((GraphQLNamedType) a.getType()).getName()))
                             .findFirst()
                             .map(a -> {
                                 atLeastOneReferenceToTimeVersion.set(true);
@@ -169,7 +169,7 @@ public class GraphQLQueryTransformer {
                         } else {
                             qb.append(", ");
                         }
-                        qb.append("$").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": _Neo4jDateTimeInput");
+                        qb.append("$").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": Long");
                     }
                     qb.append(") ");
                     //String q = AstPrinter.printAst(document);

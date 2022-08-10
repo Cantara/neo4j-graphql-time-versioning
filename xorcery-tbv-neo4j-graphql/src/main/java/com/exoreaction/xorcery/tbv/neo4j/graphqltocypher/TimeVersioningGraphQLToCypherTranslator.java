@@ -36,17 +36,13 @@ public class TimeVersioningGraphQLToCypherTranslator {
         this.domains = domains;
     }
 
-    public List<Cypher> translate(String query, Map<String, Object> parameters, ZonedDateTime timeVersion, boolean useEpochMillis) {
+    public List<Cypher> translate(String query, Map<String, Object> parameters, ZonedDateTime timeVersion) {
         QueryContext queryContext = new QueryContext();
         List<Cypher> cyphers;
         try {
             Map<String, Object> params = new LinkedHashMap<>(parameters);
-            if (useEpochMillis) {
-                long epochMilli = timeVersion.toInstant().toEpochMilli();
-                params.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, epochMilli);
-            } else {
-                params.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, toNeo4jDateTimeMap(timeVersion));
-            }
+            long epochMilli = timeVersion.toInstant().toEpochMilli();
+            params.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, epochMilli);
             cyphers = translator.translate(query, params, queryContext);
         } catch (OptimizedQueryException e) {
             throw new RuntimeException(e);

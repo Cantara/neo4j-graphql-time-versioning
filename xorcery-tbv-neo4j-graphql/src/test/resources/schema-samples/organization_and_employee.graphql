@@ -6,6 +6,8 @@ directive @virtual on FIELD_DEFINITION
 
 directive @index on FIELD_DEFINITION
 
+scalar Long
+
 type Organization @domain {
     id: ID!
     name: String!

@@ -209,7 +209,7 @@ public class GraphQLNeo4jTBVLanguage {
                         .name("_from")
                         .type(NonNullType.newNonNullType()
                                 .type(TypeName.newTypeName()
-                                        .name("DateTime")
+                                        .name("Long")
                                         .build())
                                 .build())
                         .directive(Directive.newDirective()
@@ -228,7 +228,7 @@ public class GraphQLNeo4jTBVLanguage {
                 builder.fieldDefinition(FieldDefinition.newFieldDefinition()
                         .name("_to")
                         .type(TypeName.newTypeName()
-                                .name("DateTime")
+                                .name("Long")
                                 .build())
                         .directive(Directive.newDirective()
                                 .name("virtual")
@@ -243,6 +243,7 @@ public class GraphQLNeo4jTBVLanguage {
                                         .build()))
                                 .build())
                         .build());
+                /*
                 builder.fieldDefinition(FieldDefinition.newFieldDefinition()
                         .name("_fromIso")
                         .type(NonNullType.newNonNullType()
@@ -281,6 +282,7 @@ public class GraphQLNeo4jTBVLanguage {
                                         .build()))
                                 .build())
                         .build());
+                 */
             });
             typeDefinitionRegistry.remove(typeDef);
             typeDefinitionRegistry.add(tranformedTypeDef);
@@ -355,16 +357,17 @@ public class GraphQLNeo4jTBVLanguage {
                             .name("from")
                             .type(NonNullType.newNonNullType()
                                     .type(TypeName.newTypeName()
-                                            .name("DateTime")
+                                            .name("Long")
                                             .build())
                                     .build())
                             .build())
                     .fieldDefinition(FieldDefinition.newFieldDefinition()
                             .name("to")
                             .type(TypeName.newTypeName()
-                                    .name("DateTime")
+                                    .name("Long")
                                     .build())
                             .build())
+                    /*
                     .fieldDefinition(FieldDefinition.newFieldDefinition()
                             .name("fromIso")
                             .type(NonNullType.newNonNullType()
@@ -403,6 +406,7 @@ public class GraphQLNeo4jTBVLanguage {
                                             .build()))
                                     .build())
                             .build())
+                     */
                     .build();
             typeDefinitionRegistry.add(versionTypeDef);
         });
@@ -500,7 +504,7 @@ public class GraphQLNeo4jTBVLanguage {
                             ))
                             .inputValueDefinitions(List.of(InputValueDefinition.newInputValueDefinition()
                                     .name("ver")
-                                    .type(new TypeName("_Neo4jDateTimeInput"))
+                                    .type(new TypeName("Long"))
                                     .build()))
                     );
                     transformedFields.put(field.getName(), transformedField);
@@ -518,7 +522,7 @@ public class GraphQLNeo4jTBVLanguage {
                             FieldDefinition transformedField = field.transform(builder -> builder
                                     .inputValueDefinitions(List.of(InputValueDefinition.newInputValueDefinition()
                                             .name("ver")
-                                            .type(new TypeName("_Neo4jDateTimeInput"))
+                                            .type(new TypeName("Long"))
                                             .build()))
                             );
                             transformedFields.put(field.getName(), transformedField);
@@ -706,7 +710,7 @@ public class GraphQLNeo4jTBVLanguage {
                                                 .build())
                                         .inputValueDefinitions(List.of(InputValueDefinition.newInputValueDefinition()
                                                 .name("ver")
-                                                .type(new TypeName("_Neo4jDateTimeInput"))
+                                                .type(new TypeName("Long"))
                                                 .build()))
                                         .build()
                                 ).build();

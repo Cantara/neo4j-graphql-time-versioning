@@ -225,7 +225,7 @@ public class GraphQLNeo4jHttpHandler implements HttpHandler {
         long afterTransformation = System.currentTimeMillis();
 
         ZonedDateTime timeVersion = paramsAndTimeVersion.getTimeVersion();
-        List<Cypher> cyphers = translator.translate(query, paramsAndTimeVersion.getParams(), timeVersion, false);
+        List<Cypher> cyphers = translator.translate(query, paramsAndTimeVersion.getParams(), timeVersion);
 
         long beforeNeo4j = System.currentTimeMillis();
         Driver driver = persistence.getInstance(Driver.class);

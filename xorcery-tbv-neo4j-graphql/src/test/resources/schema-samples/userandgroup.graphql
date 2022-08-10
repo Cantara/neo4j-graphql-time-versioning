@@ -6,6 +6,8 @@ directive @virtual on FIELD_DEFINITION
 
 directive @index on FIELD_DEFINITION
 
+scalar Long
+
 type User @domain {
   # e.g. 'path.to.dataset'
   id: String!
