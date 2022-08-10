@@ -5,11 +5,11 @@
     <parent>
         <groupId>com.exoreaction.xorcery</groupId>
         <artifactId>xorcery-tbv-project</artifactId>
-        <version>0.6-SNAPSHOT</version>
+        <version>0.6</version>
     </parent>
 
     <artifactId>xorcery-tbv-sample</artifactId>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.6</version>
     <packaging>jar</packaging>
     <name>xorcery-tbv-sample</name>
     <description>xorcery-tbv-sample</description>
