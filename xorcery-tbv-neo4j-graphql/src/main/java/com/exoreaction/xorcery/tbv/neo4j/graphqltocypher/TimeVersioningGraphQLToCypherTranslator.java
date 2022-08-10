@@ -39,10 +39,10 @@ public class TimeVersioningGraphQLToCypherTranslator {
     public List<Cypher> translate(String query, Map<String, Object> parameters, ZonedDateTime timeVersion) {
         QueryContext queryContext = new QueryContext();
         List<Cypher> cyphers;
+        long timeVersionEpochMilli = timeVersion.toInstant().toEpochMilli();
         try {
             Map<String, Object> params = new LinkedHashMap<>(parameters);
-            long epochMilli = timeVersion.toInstant().toEpochMilli();
-            params.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, epochMilli);
+            params.put(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION, timeVersionEpochMilli);
             cyphers = translator.translate(query, params, queryContext);
         } catch (OptimizedQueryException e) {
             throw new RuntimeException(e);
@@ -64,7 +64,7 @@ public class TimeVersioningGraphQLToCypherTranslator {
                             pit.remove();
                         }
                     }
-                    transformedComponent2.put(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION, timeVersion);
+                    transformedComponent2.put(TBVCypherConstants.PARAMETER_IDENTIFIER_TIME_BASED_VERSION, timeVersionEpochMilli);
                     return new Cypher(transformedComponent1, transformedComponent2, cypher.component3(), cypher.component4());
                 })
                 .peek(cypher -> LOG.trace("CYPHER AFTER: \n{}", cypher.component1()))
