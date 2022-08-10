@@ -5,11 +5,11 @@
     <parent>
         <groupId>com.exoreaction.xorcery</groupId>
         <artifactId>xorcery-tbv-project</artifactId>
-        <version>0.7-SNAPSHOT</version>
+        <version>0.7</version>
     </parent>
 
     <artifactId>xorcery-tbv-neo4j-graphql</artifactId>
-    <version>0.7-SNAPSHOT</version>
+    <version>0.7</version>
     <packaging>jar</packaging>
     <name>xorcery-tbv-neo4j-graphql</name>
     <description>xorcery-tbv-neo4j-graphql</description>
