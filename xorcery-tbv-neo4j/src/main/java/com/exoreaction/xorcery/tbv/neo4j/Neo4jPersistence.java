@@ -27,6 +27,8 @@ import org.neo4j.driver.types.Node;
 import org.neo4j.driver.types.Path;
 import org.neo4j.driver.types.Relationship;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -187,7 +189,7 @@ public class Neo4jPersistence implements RxJsonPersistence {
      */
     static DocumentKey getKeyFromRecord(Record record, String namespace, String entityName) {
         String docId = record.get("r").get("id").asString();
-        ZonedDateTime version = record.get("v").get("from").asZonedDateTime();
+        ZonedDateTime version = ZonedDateTime.ofInstant(Instant.ofEpochMilli(record.get("v").get("from").asLong()), ZoneOffset.UTC);
         return new DocumentKey(namespace, entityName, docId, version);
     }
 
@@ -416,7 +418,7 @@ public class Neo4jPersistence implements RxJsonPersistence {
         StringBuilder cypher = new StringBuilder();
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("rid", id);
-        params.put("snapshot", snapshot);
+        params.put("snapshot", snapshot.toInstant().toEpochMilli());
         cypher.append("MATCH (r :").append(entityName).append("_R {id: $rid})<-[v:VERSION_OF]-(m) WHERE v.from <= $snapshot AND coalesce($snapshot < v.to, true) ");
         cypher.append("RETURN r, v, m");
 
@@ -455,7 +457,7 @@ public class Neo4jPersistence implements RxJsonPersistence {
             params.put("limit", range.getLimit());
         }
 
-        params.put("snapshot", snapshot);
+        params.put("snapshot", snapshot.toInstant().toEpochMilli());
 
         Neo4jTransaction neoTx = (Neo4jTransaction) tx;
         StringBuilder cypher = new StringBuilder();
@@ -493,12 +495,12 @@ public class Neo4jPersistence implements RxJsonPersistence {
 
         List<String> conditions = new ArrayList<>();
         if (range.hasAfter()) {
-            params.put("snapshotFrom", range.getAfter());
+            params.put("snapshotFrom", range.getAfter().toInstant().toEpochMilli());
             conditions.add("$snapshotFrom < v.from");
         }
 
         if (range.hasBefore()) {
-            params.put("snapshotTo", range.getBefore());
+            params.put("snapshotTo", range.getBefore().toInstant().toEpochMilli());
             conditions.add("v.from < $snapshotTo");
         }
 
@@ -549,7 +551,7 @@ public class Neo4jPersistence implements RxJsonPersistence {
         StringBuilder cypher = new StringBuilder();
         cypher.append("MATCH (r:").append(entityName).append("_R {id: $rid})<-[:VERSION_OF {from:$version}]->(m) OPTIONAL MATCH (m)-[*]->(e:EMBEDDED) DETACH DELETE m, e ");
         cypher.append("WITH r MATCH (r) WHERE NOT (r)--() DELETE r");
-        return neoTx.executeCypherAsync(cypher.toString(), Map.of("rid", id, "version", version)).ignoreElements();
+        return neoTx.executeCypherAsync(cypher.toString(), Map.of("rid", id, "version", version.toInstant().toEpochMilli())).ignoreElements();
     }
 
     @Override
@@ -582,7 +584,7 @@ public class Neo4jPersistence implements RxJsonPersistence {
                 .append(entityName) // TODO do we need to label delete marker with all interfaces of the entity type?
                 .append(":INSTANCE").append(")\n");
         cypher.append("SET prevVersion.to = $version, m.").append(DELETED_FIELD).append(" = true\n");
-        return tx.executeCypherAsync(cypher.toString(), Map.of("rid", id, "version", version)).ignoreElements();
+        return tx.executeCypherAsync(cypher.toString(), Map.of("rid", id, "version", version.toInstant().toEpochMilli())).ignoreElements();
     }
 
     @Override

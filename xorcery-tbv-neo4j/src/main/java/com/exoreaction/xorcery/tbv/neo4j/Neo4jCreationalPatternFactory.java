@@ -52,7 +52,7 @@ class Neo4jCreationalPatternFactory {
             convertJsonDocumentToMultiDimensionalCypherData(data, documentRootNode, entitySpecificationElement);
             List<Object> record = new ArrayList<>();
             record.add(key.id());
-            record.add(key.timestamp());
+            record.add(key.timestamp().toInstant().toEpochMilli());
             record.add(data);
             try {
                 byte[] msgpack = mapper.writeValueAsBytes(documentRootNode);
