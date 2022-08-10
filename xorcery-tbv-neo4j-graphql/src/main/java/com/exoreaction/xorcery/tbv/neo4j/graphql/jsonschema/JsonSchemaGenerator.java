@@ -218,6 +218,9 @@ public class JsonSchemaGenerator extends GraphQLTypeVisitorStub {
                 case "Int":
                     propertyElements.put("type", "integer");
                     break;
+                case "Long":
+                    propertyElements.put("type", "integer");
+                    break;
                 case "Float":
                     propertyElements.put("type", "number");
                     break;

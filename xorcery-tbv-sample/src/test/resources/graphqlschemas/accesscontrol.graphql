@@ -50,5 +50,7 @@ scalar DateTime
 #An RFC-3339 compliant Full Time Scalar
 scalar Time
 
+scalar Long
+
 type Query {
 }
