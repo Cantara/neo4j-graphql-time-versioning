@@ -9,10 +9,10 @@ import static graphql.introspection.Introspection.DirectiveLocation;
 
 public class TBVDirectives {
 
-    private static final String SEARCHABLE_NAME = "searchable";
-    private static final String PAGINATION_NAME = "pagination";
-    private static final String REVERSE_NAME_NAME = "reverseName";
-    private static final String MAPPED_BY_NAME = "mappedBy";
+    public static final String SEARCHABLE_NAME = "searchable";
+    public static final String PAGINATION_NAME = "pagination";
+    public static final String REVERSE_NAME_NAME = "reverseName";
+    public static final String MAPPED_BY_NAME = "mappedBy";
 
     private static final GraphQLArgument SEARCHABLE_ARGUMENT = GraphQLArgument.newArgument()
             .name(SEARCHABLE_NAME)

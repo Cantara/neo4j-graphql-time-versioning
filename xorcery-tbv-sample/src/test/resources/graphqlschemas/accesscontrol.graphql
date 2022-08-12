@@ -10,14 +10,14 @@ type User @domain {
   # e.g. 'path.to.dataset'
   id: String!
   name: String!
-  group: [Group!] @link
+  group: [Group!] @link (reverseName: "users")
 }
 
 type Group @domain {
   # e.g. 'path.to.dataset$fieldName'
   id: String!
   name: String!
-  parent: [Group!] @link
+  parent: [Group!] @link (reverseName: "children")
   smart: [Group!] @virtual @cypher(statement: "MATCH (this) CALL tbv.path.expand(this,'parent','+Group',-1,-1,ver) YIELD path RETURN last(nodes(path)) AS n")
   ancestors: [Group!] @virtual @cypher(statement: "MATCH (this) CALL tbv.path.expand(this,'parent>','+Group',-1,-1,ver) YIELD path WHERE last(nodes(path)) <> this RETURN last(nodes(path)) AS n")
   descendants: [Group!] @virtual @cypher(statement: "MATCH (this) CALL tbv.path.expand(this,'<parent','+Group',-1,-1,ver) YIELD path WHERE last(nodes(path)) <> this RETURN last(nodes(path)) AS n")

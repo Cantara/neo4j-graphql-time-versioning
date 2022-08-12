@@ -193,7 +193,7 @@ public class TimeBasedVersioningTest {
                         query ($groupId: String) {
                            group(id: $groupId) {
                              name
-                             reverseUserGroup {
+                             users {
                                name
                              }
                            }
@@ -204,8 +204,8 @@ public class TimeBasedVersioningTest {
 
         assertEquals(twoDaysAgoResponse.get("data").size(), 1);
         assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("name").asText(), "Software");
-        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("reverseUserGroup").size(), 1);
-        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("reverseUserGroup").get(0).get("name").asText(), "John Smith");
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("users").size(), 1);
+        assertEquals(twoDaysAgoResponse.get("data").get(0).get("group").get("users").get(0).get("name").asText(), "John Smith");
     }
 
     //@Test

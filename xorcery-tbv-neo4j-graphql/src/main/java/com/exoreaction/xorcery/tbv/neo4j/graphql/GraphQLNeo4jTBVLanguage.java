@@ -1,5 +1,6 @@
 package com.exoreaction.xorcery.tbv.neo4j.graphql;
 
+import com.exoreaction.xorcery.tbv.graphql.directives.TBVDirectives;
 import graphql.GraphQLError;
 import graphql.language.Argument;
 import graphql.language.Directive;
@@ -102,6 +103,12 @@ public class GraphQLNeo4jTBVLanguage {
                 .build());
         typeDefinitionRegistry.add(DirectiveDefinition.newDirectiveDefinition()
                 .name("link")
+                .inputValueDefinition(InputValueDefinition.newInputValueDefinition()
+                        .name(TBVDirectives.REVERSE_NAME_NAME)
+                        .type(TypeName.newTypeName()
+                                .name("String")
+                                .build())
+                        .build())
                 .directiveLocation(DirectiveLocation.newDirectiveLocation()
                         .name("FIELD_DEFINITION")
                         .build())
@@ -679,6 +686,15 @@ public class GraphQLNeo4jTBVLanguage {
                                 String tbvReverseResolutionCypher = sb.toString();
                                 LOG.trace("REVERSE LINK CYPHER to Object {}: {}", targetObjectType.getName(), tbvReverseResolutionCypher);
                                 codedNameOfRelationship += "_" + last.fieldName + "_" + last.objectName;
+                                List<Directive> linkDirectives = field.getDirectives(TBVDirectives.LINK.getName());
+                                if (linkDirectives != null && linkDirectives.size() > 0) {
+                                    Directive linkDirective = linkDirectives.get(0);
+                                    Argument reverseNameArgument = linkDirective.getArgument(TBVDirectives.REVERSE_NAME_NAME);
+                                    if (reverseNameArgument != null) {
+                                        nameOfPath = ((StringValue) reverseNameArgument.getValue()).getValue();
+                                        codedNameOfRelationship = ((StringValue) reverseNameArgument.getValue()).getValue();
+                                    }
+                                }
                                 builder.fieldDefinition(FieldDefinition.newFieldDefinition()
                                         .name(nameOfPath)
                                         .type(ListType.newListType(TypeName.newTypeName(nameOfType).build()).build())
