@@ -6,10 +6,13 @@ import org.neo4j.cypherdsl.core.ExposesCall;
 import org.neo4j.cypherdsl.core.ExposesMatch;
 import org.neo4j.cypherdsl.core.ExposesReturning;
 import org.neo4j.cypherdsl.core.ExposesSubqueryCall;
+import org.neo4j.cypherdsl.core.ExposesWhere;
 import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.Limit;
 import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.Match;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.NumberLiteral;
 import org.neo4j.cypherdsl.core.PatternElement;
 import org.neo4j.cypherdsl.core.ProcedureCall;
 import org.neo4j.cypherdsl.core.Relationship;
@@ -244,10 +247,15 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
 
     static class ReturnContext implements ExpressionOperandAware {
         final List<Expression> expressions = new LinkedList<>();
+        LimitContext limitContext;
 
         @Override
         public ReturnContext add(Object operand) {
-            expressions.add((Expression) operand);
+            if (operand instanceof Expression expression) {
+                expressions.add(expression);
+            } else if (operand instanceof LimitContext limitContext) {
+                this.limitContext = limitContext;
+            }
             return this;
         }
     }
@@ -287,6 +295,7 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         StatementBuilder.ExposesWith exposesWith = null;
         ExposesSubqueryCall exposesSubqueryCall = statementBuilder;
         ExposesReturning exposesReturning = statementBuilder;
+        ExposesWhere exposesWhere = null;
         StatementBuilder.OrderableOngoingReadingAndWithWithoutWhere orderableOngoingReadingAndWithWithoutWhere = null;
         for (Object clause : statementContext.clauses) {
             if (clause instanceof WithContext withContext) {
@@ -305,6 +314,7 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
                 exposesMatch = ongoingReadingWithoutWhere;
                 exposesSubqueryCall = ongoingReadingWithoutWhere;
                 exposesReturning = ongoingReadingWithoutWhere;
+                exposesWhere = ongoingReadingWithoutWhere;
             } else if (clause instanceof ProcedureCallContext procedureCallContext) {
                 String qualifiedProcedureName = procedureCallContext.procedureName.getQualifiedName();
                 ExposesCall.ExposesYield<StatementBuilder.OngoingInQueryCallWithReturnFields> exposesYield;
@@ -332,12 +342,24 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
                     }
                 }
                 if (hasAliasedExpression) {
-                    exposesReturning = exposesYield.yield(aliasedExpressionsArray);
+                    StatementBuilder.OngoingInQueryCallWithReturnFields yield = exposesYield.yield(aliasedExpressionsArray);
+                    exposesMatch = yield;
+                    exposesWhere = yield;
+                    exposesReturning = yield;
+                    exposesWith = yield;
+                    exposesSubqueryCall = yield;
                     if (hasSymbolicName) {
                         throw new CypherDslQueryTransformerException("ProcedureCall contains arguments of both AliasedExpression and SymbolicName");
                     }
                 } else if (hasSymbolicName) {
-                    exposesReturning = exposesYield.yield(symbolicNamesArray);
+                    StatementBuilder.OngoingInQueryCallWithReturnFields yield = exposesYield.yield(symbolicNamesArray);
+                    exposesMatch = yield;
+                    exposesWhere = yield;
+                    exposesReturning = yield;
+                    exposesWith = yield;
+                    exposesSubqueryCall = yield;
+                } else {
+                    throw new CypherDslQueryTransformerException("Missing YIELD statement after procedure-call");
                 }
             } else if (clause instanceof MatchContext matchContext) {
                 StatementBuilder.OngoingReadingWithoutWhere ongoingReadingWithoutWhere = exposesMatch.match(matchContext.isOptional, matchContext.patternElements.toArray(new PatternElement[0]));
@@ -345,12 +367,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
                 exposesMatch = ongoingReadingWithoutWhere;
                 exposesSubqueryCall = ongoingReadingWithoutWhere;
                 exposesReturning = ongoingReadingWithoutWhere;
+                exposesWhere = ongoingReadingWithoutWhere;
                 if (matchContext.condition != null) {
                     StatementBuilder.OngoingReadingWithWhere ongoingReadingWithWhere = ongoingReadingWithoutWhere.where(matchContext.condition);
                     exposesWith = ongoingReadingWithWhere;
                     exposesMatch = ongoingReadingWithWhere;
                     exposesSubqueryCall = ongoingReadingWithWhere;
                     exposesReturning = ongoingReadingWithWhere;
+                    exposesWhere = ongoingReadingWithoutWhere;
                 }
             } else if (clause instanceof ReturnContext returnContext) {
                 // handled at end after clauses loop
@@ -360,7 +384,17 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
             throw new CypherDslQueryTransformerException();
         }
         StatementBuilder.OngoingReadingAndReturn ongoingReadingAndReturn = exposesReturning.returning(statementContext.returnContext.expressions);
-        ResultStatement resultStatement = ongoingReadingAndReturn.build();
+        StatementBuilder.BuildableStatement<ResultStatement> buildableStatementWithResult = ongoingReadingAndReturn;
+        if (statementContext.returnContext.limitContext != null) {
+            if (statementContext.returnContext.limitContext.numberLiteral != null) {
+                buildableStatementWithResult = ongoingReadingAndReturn.limit(statementContext.returnContext.limitContext.numberLiteral);
+            } else if (statementContext.returnContext.limitContext.expression != null) {
+                buildableStatementWithResult = ongoingReadingAndReturn.limit(statementContext.returnContext.limitContext.expression);
+            } else {
+                throw new CypherDslQueryTransformerException();
+            }
+        }
+        ResultStatement resultStatement = buildableStatementWithResult.build();
         transformAndPushUp(resultStatement);
     }
 
@@ -407,6 +441,51 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
         ReturnContext returnContext = (ReturnContext) operatorStack.pop();
         transformAndPushUp(returnContext);
+    }
+
+    class LimitContext implements OperandAware {
+        NumberLiteral numberLiteral;
+        Expression expression;
+
+        @Override
+        public OperandAware add(Object operand) {
+            if (operand instanceof NumberLiteral numberLiteral) {
+                this.numberLiteral = numberLiteral;
+            } else if (operand instanceof Expression expression) {
+                this.expression = expression;
+            } else {
+                throw new CypherDslQueryTransformerException("Expected NumberLiteral or Expression limit");
+            }
+            return null;
+        }
+    }
+
+    void enter(Limit limit) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), limit.getClass().getSimpleName());
+        }
+        operatorStack.push(new LimitContext());
+    }
+
+    void leave(Limit limit) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), limit.getClass().getSimpleName());
+        }
+        LimitContext limitContext = (LimitContext) operatorStack.pop();
+        transformAndPushUp(limitContext);
+    }
+
+    void enter(NumberLiteral numberLiteral) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), numberLiteral.getClass().getSimpleName());
+        }
+    }
+
+    void leave(NumberLiteral numberLiteral) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), numberLiteral.getClass().getSimpleName());
+        }
+        transformAndPushUp(numberLiteral);
     }
 
     void enter(Expression expression) {
