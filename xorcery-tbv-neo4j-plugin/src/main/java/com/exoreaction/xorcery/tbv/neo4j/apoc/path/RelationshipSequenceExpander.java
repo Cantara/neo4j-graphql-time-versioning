@@ -14,7 +14,6 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.helpers.collection.NestingIterator;
 import org.neo4j.internal.helpers.collection.Pair;
 
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -35,11 +34,11 @@ import java.util.List;
 public class RelationshipSequenceExpander implements PathExpander {
     static final Iterable<Relationship> EMPTY = Collections.emptyList();
     private final List<List<Pair<RelationshipType, Direction>>> relSequences = new ArrayList<>();
-    private final ZonedDateTime snapshot;
+    private final long snapshot;
     private List<Pair<RelationshipType, Direction>> initialRels = null;
 
 
-    public RelationshipSequenceExpander(ZonedDateTime snapshot, String relSequenceString, boolean beginSequenceAtStart) {
+    public RelationshipSequenceExpander(long snapshot, String relSequenceString, boolean beginSequenceAtStart) {
         this.snapshot = snapshot;
         int index = 0;
 
@@ -68,7 +67,7 @@ public class RelationshipSequenceExpander implements PathExpander {
         }
     }
 
-    public RelationshipSequenceExpander(ZonedDateTime snapshot, List<String> relSequenceList, boolean beginSequenceAtStart) {
+    public RelationshipSequenceExpander(long snapshot, List<String> relSequenceList, boolean beginSequenceAtStart) {
         this.snapshot = snapshot;
         int index = 0;
 
@@ -108,13 +107,14 @@ public class RelationshipSequenceExpander implements PathExpander {
              */
             List<Relationship> excludes = new ArrayList<>();
             List<Relationship> relationshipsToExpand = new ArrayList<>();
-            if (!path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
+            Relationship lastRelationship = path.lastRelationship();
+            if (lastRelationship != null && !lastRelationship.isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
                 Relationship resolvedVersionRelationship = resolveTimeBaseVersioningRelationship(node, Direction.INCOMING);
                 if (resolvedVersionRelationship == null) {
                     return Iterables.empty(); // do not expand any relationships if resource does not have a valid instance
                 }
                 relationshipsToExpand.add(resolvedVersionRelationship);
-                excludes.add(path.lastRelationship());
+                excludes.add(lastRelationship);
             }
             relationshipsToExpand.addAll(Iterators.asList(
                     new NestingIterator<Relationship, Pair<RelationshipType, Direction>>(
@@ -198,7 +198,9 @@ public class RelationshipSequenceExpander implements PathExpander {
                 // path.lastRelationship().getStartNode().equals(node) == true
                 {
                     Iterator<Relationship> iterator = node.getRelationships(Direction.INCOMING).iterator();
-                    relationshipsToExpand.add(iterator.next());
+                    if (iterator.hasNext()) {
+                        relationshipsToExpand.add(iterator.next());
+                    }
                     if (iterator instanceof ResourceIterator) {
                         ((ResourceIterator<Relationship>) iterator).close();
                     }
@@ -260,18 +262,24 @@ public class RelationshipSequenceExpander implements PathExpander {
             Node node = relationship.getStartNode();
             while (node.hasLabel(TBVConstants.LABEL_EMBEDDED)) {
                 Iterator<Relationship> iterator = node.getRelationships(Direction.INCOMING).iterator();
-                node = iterator.next().getStartNode();
+                if (iterator.hasNext()) {
+                    node = iterator.next().getStartNode();
+                }
                 if (iterator instanceof ResourceIterator) {
                     ((ResourceIterator<Relationship>) iterator).close();
                 }
             }
             // node.hasLabel(LABEL_INSTANCE) == true
             Iterator<Relationship> iterator = node.getRelationships(Direction.OUTGOING, TBVConstants.RELATIONSHIP_TYPE_VERSION_OF).iterator();
-            Relationship versionOf = iterator.next();
+            Relationship versionOf = null;
+            if (iterator.hasNext()) {
+                versionOf = iterator.next();
+            }
             if (iterator instanceof ResourceIterator) {
                 ((ResourceIterator<Relationship>) iterator).close();
             }
-            if (isVersionValid(versionOf)) {
+
+            if (versionOf != null && isVersionValid(versionOf)) {
                 list.add(relationship);
             }
         }
@@ -279,15 +287,15 @@ public class RelationshipSequenceExpander implements PathExpander {
     }
 
     private boolean isVersionValid(Relationship versionOf) {
-        ZonedDateTime from = (ZonedDateTime) versionOf.getProperty("from");
-        if (from.isAfter(snapshot)) {
+        long from = (Long) versionOf.getProperty("from");
+        if (from >snapshot) {
             return false;
         }
         if (!versionOf.hasProperty("to")) {
             return true;
         }
-        ZonedDateTime to = (ZonedDateTime) versionOf.getProperty("to");
-        if (to.isAfter(snapshot)) {
+        long to = (Long) versionOf.getProperty("to");
+        if (to > snapshot) {
             return true;
         }
         return false;

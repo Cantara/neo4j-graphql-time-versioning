@@ -21,7 +21,6 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -52,7 +51,7 @@ public class PathExplorer {
             , @Name("labelFilter") String labelFilter
             , @Name("minLevel") long minLevel
             , @Name("maxLevel") long maxLevel
-            , @Name("snapshot") ZonedDateTime snapshot) throws Exception {
+            , @Name("snapshot") long snapshot) throws Exception {
         List<Node> nodes = startToNodes(start);
         return explorePathPrivate(nodes, pathFilter, labelFilter, minLevel, maxLevel, BFS, UNIQUENESS, false, -1, null, null, true, snapshot).map(PathResult::new);
     }
@@ -61,13 +60,13 @@ public class PathExplorer {
     @Procedure("tbv.path.expandConfig")
     @Description("tbv.path.expandConfig(startNode <id>|Node|list, {minLevel,maxLevel,uniqueness,relationshipFilter,labelFilter,uniqueness:'RELATIONSHIP_PATH',bfs:true, filterStartNode:false, limit:-1, optional:false, endNodes:[], terminatorNodes:[], sequence, beginSequenceAtStart:true}) yield path - " +
             "expand from start node following the given relationships from min to max-level adhering to the label filters. ")
-    public Stream<PathResult> expandConfig(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") ZonedDateTime snapshot) throws Exception {
+    public Stream<PathResult> expandConfig(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") long snapshot) throws Exception {
         return expandConfigPrivate(start, config).map(PathResult::new);
     }
 
     @Procedure("tbv.path.subgraphNodes")
     @Description("tbv.path.subgraphNodes(startNode <id>|Node|list, {maxLevel,relationshipFilter,labelFilter,bfs:true, filterStartNode:false, limit:-1, optional:false, endNodes:[], terminatorNodes:[], sequence, beginSequenceAtStart:true}) yield node - expand the subgraph nodes reachable from start node following relationships to max-level adhering to the label filters")
-    public Stream<NodeResult> subgraphNodes(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") ZonedDateTime snapshot) throws Exception {
+    public Stream<NodeResult> subgraphNodes(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") long snapshot) throws Exception {
         Map<String, Object> configMap = new HashMap<>(config);
         configMap.put("uniqueness", "NODE_GLOBAL");
 
@@ -80,7 +79,7 @@ public class PathExplorer {
 
     @Procedure("tbv.path.subgraphAll")
     @Description("tbv.path.subgraphAll(startNode <id>|Node|list, {maxLevel,relationshipFilter,labelFilter,bfs:true, filterStartNode:false, limit:-1, endNodes:[], terminatorNodes:[], sequence, beginSequenceAtStart:true}) yield nodes, relationships - expand the subgraph reachable from start node following relationships to max-level adhering to the label filters, and also return all relationships within the subgraph")
-    public Stream<GraphResult> subgraphAll(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") ZonedDateTime snapshot) throws Exception {
+    public Stream<GraphResult> subgraphAll(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") long snapshot) throws Exception {
         Map<String, Object> configMap = new HashMap<>(config);
         configMap.remove("optional"); // not needed, will return empty collections anyway if no results
         configMap.put("uniqueness", "NODE_GLOBAL");
@@ -97,7 +96,7 @@ public class PathExplorer {
 
     @Procedure("tbv.path.spanningTree")
     @Description("tbv.path.spanningTree(startNode <id>|Node|list, {maxLevel,relationshipFilter,labelFilter,bfs:true, filterStartNode:false, limit:-1, optional:false, endNodes:[], terminatorNodes:[], sequence, beginSequenceAtStart:true}) yield path - expand a spanning tree reachable from start node following relationships to max-level adhering to the label filters")
-    public Stream<PathResult> spanningTree(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") ZonedDateTime snapshot) throws Exception {
+    public Stream<PathResult> spanningTree(@Name("start") Object start, @Name("config") Map<String, Object> config, @Name("snapshot") long snapshot) throws Exception {
         Map<String, Object> configMap = new HashMap<>(config);
         configMap.put("uniqueness", "NODE_GLOBAL");
 
@@ -159,7 +158,7 @@ public class PathExplorer {
         boolean optional = Util.toBoolean(config.getOrDefault("optional", false));
         String sequence = (String) config.getOrDefault("sequence", null);
         boolean beginSequenceAtStart = Util.toBoolean(config.getOrDefault("beginSequenceAtStart", true));
-        ZonedDateTime snapshot = (ZonedDateTime) config.getOrDefault("snapshot", ZonedDateTime.now());
+        long snapshot = (Long) config.getOrDefault("snapshot", System.currentTimeMillis());
 
         List<Node> endNodes = startToNodes(config.get("endNodes"));
         List<Node> terminatorNodes = startToNodes(config.get("terminatorNodes"));
@@ -204,7 +203,7 @@ public class PathExplorer {
                                             EnumMap<NodeFilter, List<Node>> nodeFilter,
                                             String sequence,
                                             boolean beginSequenceAtStart,
-                                            ZonedDateTime snapshot) {
+                                            long snapshot) {
 
         Traverser traverser = traverse(tx.traversalDescription(), startNodes, pathFilter, labelFilter, minLevel, maxLevel, uniqueness, bfs, filterStartNode, nodeFilter, sequence, beginSequenceAtStart, snapshot);
 
@@ -247,7 +246,7 @@ public class PathExplorer {
                                      EnumMap<NodeFilter, List<Node>> nodeFilter,
                                      String sequence,
                                      boolean beginSequenceAtStart,
-                                     ZonedDateTime snapshot) {
+                                     long snapshot) {
         TraversalDescription td = traversalDescription;
         // based on the pathFilter definition now the possible relationships and directions must be shown
 
