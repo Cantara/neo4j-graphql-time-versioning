@@ -57,7 +57,7 @@ public abstract class TBVEvaluators {
             }
         }
         if (path.endNode().hasLabel(TBVConstants.LABEL_RESOURCE)) {
-            if (!path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
+            if (path.lastRelationship() != null && !path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
                 pathLength--;
             }
         }
