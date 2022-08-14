@@ -1,13 +1,17 @@
 package com.exoreaction.xorcery.tbv.neo4j.opencypherdsl;
 
+import org.neo4j.cypherdsl.core.AliasedExpression;
 import org.neo4j.cypherdsl.core.Condition;
+import org.neo4j.cypherdsl.core.ExposesCall;
 import org.neo4j.cypherdsl.core.ExposesMatch;
 import org.neo4j.cypherdsl.core.ExposesReturning;
 import org.neo4j.cypherdsl.core.ExposesSubqueryCall;
 import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.Match;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.PatternElement;
+import org.neo4j.cypherdsl.core.ProcedureCall;
 import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.ResultStatement;
@@ -15,11 +19,15 @@ import org.neo4j.cypherdsl.core.Return;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.StatementBuilder;
 import org.neo4j.cypherdsl.core.Subquery;
+import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.Where;
 import org.neo4j.cypherdsl.core.With;
 import org.neo4j.cypherdsl.core.ast.Visitable;
+import org.neo4j.cypherdsl.core.internal.ProcedureName;
 import org.neo4j.cypherdsl.core.internal.ReflectiveVisitor;
+import org.neo4j.cypherdsl.core.internal.YieldItems;
 
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -100,6 +108,8 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
             } else if (operand instanceof SubqueryContext subqueryContext) {
                 clauses.add(subqueryContext);
                 subqueryContexts.add(subqueryContext);
+            } else if (operand instanceof ProcedureCallContext procedureCallContext) {
+                clauses.add(procedureCallContext);
             } else {
                 throw new CypherDslQueryTransformerException();
             }
@@ -143,6 +153,37 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
             }
             this.statement = (Statement) operand;
             return this;
+        }
+    }
+
+    static class ProcedureCallContext implements StatementOperandAware {
+        ProcedureName procedureName;
+        Statement statement;
+        final List<Expression> arguments = new ArrayList<>();
+        final List<Expression> yieldExpressions = new ArrayList<>();
+
+        @Override
+        public StatementOperandAware add(Object operand) {
+            if (operand instanceof ProcedureCall procedureCall) {
+                yieldExpressions.addAll(procedureCall.getIdentifiableExpressions());
+                return this;
+            }
+            if (operand instanceof ProcedureName procedureName) {
+                this.procedureName = procedureName;
+                return this;
+            }
+            if (operand instanceof Expression expression) {
+                arguments.add(expression);
+                return this;
+            }
+            if (operand instanceof Statement statement) {
+                if (this.statement != null) {
+                    throw new CypherDslQueryTransformerException();
+                }
+                this.statement = statement;
+                return this;
+            }
+            throw new CypherDslQueryTransformerException("operand type not supported: " + operand.getClass());
         }
     }
 
@@ -246,9 +287,9 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         StatementBuilder.ExposesWith exposesWith = null;
         ExposesSubqueryCall exposesSubqueryCall = statementBuilder;
         ExposesReturning exposesReturning = statementBuilder;
+        StatementBuilder.OrderableOngoingReadingAndWithWithoutWhere orderableOngoingReadingAndWithWithoutWhere = null;
         for (Object clause : statementContext.clauses) {
             if (clause instanceof WithContext withContext) {
-                StatementBuilder.OrderableOngoingReadingAndWithWithoutWhere orderableOngoingReadingAndWithWithoutWhere;
                 if (exposesWith == null) {
                     orderableOngoingReadingAndWithWithoutWhere = statementBuilder.with(withContext.expressions);
                 } else {
@@ -264,6 +305,40 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
                 exposesMatch = ongoingReadingWithoutWhere;
                 exposesSubqueryCall = ongoingReadingWithoutWhere;
                 exposesReturning = ongoingReadingWithoutWhere;
+            } else if (clause instanceof ProcedureCallContext procedureCallContext) {
+                String qualifiedProcedureName = procedureCallContext.procedureName.getQualifiedName();
+                ExposesCall.ExposesYield<StatementBuilder.OngoingInQueryCallWithReturnFields> exposesYield;
+                StatementBuilder.OngoingInQueryCallWithoutArguments ongoingInQueryCallWithoutArguments = orderableOngoingReadingAndWithWithoutWhere.call(qualifiedProcedureName);
+                exposesYield = ongoingInQueryCallWithoutArguments;
+                if (procedureCallContext.arguments.size() > 0) {
+                    StatementBuilder.OngoingInQueryCallWithArguments ongoingInQueryCallWithArguments = ongoingInQueryCallWithoutArguments
+                            .withArgs(procedureCallContext.arguments.toArray(new Expression[0]));
+                    exposesYield = ongoingInQueryCallWithArguments;
+                }
+                AliasedExpression[] aliasedExpressionsArray = new AliasedExpression[procedureCallContext.yieldExpressions.size()];
+                SymbolicName[] symbolicNamesArray = new SymbolicName[procedureCallContext.yieldExpressions.size()];
+                boolean hasAliasedExpression = false;
+                boolean hasSymbolicName = false;
+                for (int i = 0; i < procedureCallContext.yieldExpressions.size(); i++) {
+                    Expression yieldExpression = procedureCallContext.yieldExpressions.get(i);
+                    if (yieldExpression instanceof AliasedExpression aliasedExpression) {
+                        aliasedExpressionsArray[i] = aliasedExpression;
+                        hasAliasedExpression = true;
+                    } else if (yieldExpression instanceof SymbolicName symbolicName) {
+                        symbolicNamesArray[i] = symbolicName;
+                        hasSymbolicName = true;
+                    } else {
+                        throw new CypherDslQueryTransformerException("Unsupported yield expression type: " + yieldExpression.getClass());
+                    }
+                }
+                if (hasAliasedExpression) {
+                    exposesReturning = exposesYield.yield(aliasedExpressionsArray);
+                    if (hasSymbolicName) {
+                        throw new CypherDslQueryTransformerException("ProcedureCall contains arguments of both AliasedExpression and SymbolicName");
+                    }
+                } else if (hasSymbolicName) {
+                    exposesReturning = exposesYield.yield(symbolicNamesArray);
+                }
             } else if (clause instanceof MatchContext matchContext) {
                 StatementBuilder.OngoingReadingWithoutWhere ongoingReadingWithoutWhere = exposesMatch.match(matchContext.isOptional, matchContext.patternElements.toArray(new PatternElement[0]));
                 exposesWith = ongoingReadingWithoutWhere;
@@ -284,8 +359,7 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         if (statementContext.returnContext == null) {
             throw new CypherDslQueryTransformerException();
         }
-        StatementBuilder.OngoingReading ongoingReading = (StatementBuilder.OngoingReading) exposesMatch;
-        StatementBuilder.OngoingReadingAndReturn ongoingReadingAndReturn = ongoingReading.returning(statementContext.returnContext.expressions);
+        StatementBuilder.OngoingReadingAndReturn ongoingReadingAndReturn = exposesReturning.returning(statementContext.returnContext.expressions);
         ResultStatement resultStatement = ongoingReadingAndReturn.build();
         transformAndPushUp(resultStatement);
     }
@@ -348,6 +422,19 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
         operatorStack.pop();
         transformAndPushUp(expression);
+    }
+
+    void enter(Literal literal) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), literal.getClass().getSimpleName());
+        }
+    }
+
+    void leave(Literal literal) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), literal.getClass().getSimpleName());
+        }
+        transformAndPushUp(literal);
     }
 
     void enter(Match match) {
@@ -451,6 +538,50 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
         operatorStack.pop();
         transformAndPushUp(relationshipPattern);
+    }
+
+    void enter(ProcedureCall procedureCall) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), procedureCall.getClass().getSimpleName());
+        }
+        operatorStack.push(new ProcedureCallContext().add(procedureCall));
+    }
+
+    void leave(ProcedureCall procedureCall) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), procedureCall.getClass().getSimpleName());
+        }
+        ProcedureCallContext procedureCallContext = (ProcedureCallContext) operatorStack.pop();
+        transformAndPushUp(procedureCallContext);
+    }
+
+    void enter(ProcedureName procedureName) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), procedureName.getClass().getSimpleName());
+        }
+        operatorStack.push(new Object()); // protect procedure-arguments from seeing procedure namespace as the first argument
+    }
+
+    void leave(ProcedureName procedureName) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), procedureName.getClass().getSimpleName());
+        }
+        operatorStack.pop();
+        transformAndPushUp(procedureName);
+    }
+
+    void enter(YieldItems yieldItems) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), yieldItems.getClass().getSimpleName());
+        }
+        operatorStack.push(new Object()); // protect procedureCallContext from interpreting this as an argument
+    }
+
+    void leave(YieldItems yieldItems) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), yieldItems.getClass().getSimpleName());
+        }
+        Object yieldItemsContext = (Object) operatorStack.pop();
     }
 
     void enter(Where where) {

@@ -11,6 +11,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import static org.neo4j.cypherdsl.core.Cypher.anyNode;
+import static org.neo4j.cypherdsl.core.Cypher.literalOf;
 import static org.neo4j.cypherdsl.core.Cypher.match;
 import static org.neo4j.cypherdsl.core.Cypher.name;
 import static org.neo4j.cypherdsl.core.Cypher.node;
@@ -68,5 +69,25 @@ public class CypherDslQueryTransformerTest {
         String expected = prettyRenderer.render(expectedStatement);
 
         Assert.assertEquals(actual, expected);
+    }
+
+    @Test
+    public void thatUsingDslToCreateProcedureCallWithArgumentsAndYieldReturningQueryWorks() {
+        ResultStatement statement = with(name("a"), name("b"))
+                .with(name("a").as("this"), name("b").as("that"))
+                .call("apoc.create")
+                .withArgs(name("this"), literalOf("some-string"))
+                .yield(name("path").as("p"))
+                .returning("p")
+                .build();
+
+        Renderer prettyRenderer = Renderer.getRenderer(Configuration.prettyPrinting());
+
+        String actual = prettyRenderer.render(statement);
+
+        Assert.assertEquals(actual, """
+                WITH a, b
+                WITH a AS this, b AS that CALL apoc.create(this, 'some-string') YIELD path AS p
+                RETURN p""");
     }
 }
