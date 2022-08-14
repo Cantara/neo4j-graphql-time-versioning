@@ -78,7 +78,8 @@ public class CypherDslQueryTransformerTest {
                 .call("apoc.create")
                 .withArgs(name("this"), literalOf("some-string"))
                 .yield(name("path").as("p"))
-                .returning("p")
+                .with(name("p").as("n"))
+                .returning("n")
                 .build();
 
         Renderer prettyRenderer = Renderer.getRenderer(Configuration.prettyPrinting());
@@ -88,6 +89,7 @@ public class CypherDslQueryTransformerTest {
         Assert.assertEquals(actual, """
                 WITH a, b
                 WITH a AS this, b AS that CALL apoc.create(this, 'some-string') YIELD path AS p
-                RETURN p""");
+                WITH p AS n
+                RETURN n""");
     }
 }
