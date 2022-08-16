@@ -143,7 +143,7 @@ public class GraphQLQueryTransformer {
             OperationDefinition.Operation operation = operationDefinition.getOperation();
             switch (operation) {
                 case QUERY:
-                    qb.append("query (");
+                    qb.append("query ");
                     boolean first = true;
                     for (VariableDefinition variableDefinition : operationDefinition.getVariableDefinitions()) {
                         String name = variableDefinition.getName();
@@ -151,6 +151,7 @@ public class GraphQLQueryTransformer {
                             continue;
                         }
                         if (first) {
+                            qb.append("(");
                             first = false;
                         } else {
                             qb.append(", ");
@@ -165,13 +166,16 @@ public class GraphQLQueryTransformer {
                     }
                     if (atLeastOneReferenceToTimeVersion.get()) {
                         if (first) {
+                            qb.append("(");
                             first = false;
                         } else {
                             qb.append(", ");
                         }
                         qb.append("$").append(TBVGraphQLConstants.VARIABLE_IDENTIFIER_TIME_BASED_VERSION).append(": Long");
                     }
-                    qb.append(") ");
+                    if (!first) {
+                        qb.append(") ");
+                    }
                     //String q = AstPrinter.printAst(document);
                     break;
                 case MUTATION:
