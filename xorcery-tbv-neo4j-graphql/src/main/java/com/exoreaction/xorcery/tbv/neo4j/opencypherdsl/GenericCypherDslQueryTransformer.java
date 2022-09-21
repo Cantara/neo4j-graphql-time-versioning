@@ -83,15 +83,15 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         depth--;
     }
 
-    static class StatementContext implements SubqueryOperandAware, WithOperandAware, MatchOperandAware, ReturnOperandAware {
+    protected static class StatementContext implements SubqueryOperandAware, WithOperandAware, MatchOperandAware, ReturnOperandAware {
 
-        final Statement originalStatement;
+        protected final Statement originalStatement;
 
-        final List<Object> clauses = new LinkedList<>();
-        final List<SubqueryContext> subqueryContexts = new LinkedList<>();
-        final List<WithContext> withContexts = new LinkedList<>();
-        final List<MatchContext> matchContexts = new LinkedList<>();
-        ReturnContext returnContext;
+        protected final List<Object> clauses = new LinkedList<>();
+        protected final List<SubqueryContext> subqueryContexts = new LinkedList<>();
+        protected final List<WithContext> withContexts = new LinkedList<>();
+        protected final List<MatchContext> matchContexts = new LinkedList<>();
+        protected ReturnContext returnContext;
 
         public StatementContext(Statement originalStatement) {
             this.originalStatement = originalStatement;
@@ -120,15 +120,15 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    static class MatchContext implements PatternElementOperandAware, WhereOperandAware {
-        final Match originalMatch;
-        final boolean isOptional;
+    protected static class MatchContext implements PatternElementOperandAware, WhereOperandAware {
+        protected final Match originalMatch;
+        protected final boolean isOptional;
 
-        final List<PatternElement> patternElements = new LinkedList<>();
+        protected final List<PatternElement> patternElements = new LinkedList<>();
 
-        Condition condition;
+        protected Condition condition;
 
-        MatchContext(Match originalMatch, boolean isOptional) {
+        protected MatchContext(Match originalMatch, boolean isOptional) {
             this.originalMatch = originalMatch;
             this.isOptional = isOptional;
         }
@@ -146,8 +146,8 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    static class SubqueryContext implements StatementOperandAware {
-        Statement statement;
+    protected static class SubqueryContext implements StatementOperandAware {
+        protected Statement statement;
 
         @Override
         public StatementOperandAware add(Object operand) {
@@ -159,11 +159,11 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    static class ProcedureCallContext implements StatementOperandAware {
-        ProcedureName procedureName;
-        Statement statement;
-        final List<Expression> arguments = new ArrayList<>();
-        final List<Expression> yieldExpressions = new ArrayList<>();
+    protected static class ProcedureCallContext implements StatementOperandAware {
+        protected ProcedureName procedureName;
+        protected Statement statement;
+        protected final List<Expression> arguments = new ArrayList<>();
+        protected final List<Expression> yieldExpressions = new ArrayList<>();
 
         @Override
         public StatementOperandAware add(Object operand) {
@@ -190,7 +190,7 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    static class WithContext implements ExpressionOperandAware {
+    protected static class WithContext implements ExpressionOperandAware {
 
         private final List<Expression> expressions = new LinkedList<>();
 
@@ -201,39 +201,39 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    interface OperandAware {
+    protected interface OperandAware {
         OperandAware add(Object operand);
     }
 
-    interface SubqueryOperandAware extends OperandAware {
+    protected interface SubqueryOperandAware extends OperandAware {
     }
 
-    interface ConditionOperandAware extends OperandAware {
+    protected interface ConditionOperandAware extends OperandAware {
     }
 
-    interface MatchOperandAware extends OperandAware {
+    protected interface MatchOperandAware extends OperandAware {
     }
 
-    interface WhereOperandAware extends OperandAware {
+    protected interface WhereOperandAware extends OperandAware {
     }
 
-    interface PatternElementOperandAware extends OperandAware {
+    protected interface PatternElementOperandAware extends OperandAware {
     }
 
-    interface ReturnOperandAware extends OperandAware {
+    protected interface ReturnOperandAware extends OperandAware {
     }
 
-    interface StatementOperandAware extends OperandAware {
+    protected interface StatementOperandAware extends OperandAware {
     }
 
-    interface WithOperandAware extends OperandAware {
+    protected interface WithOperandAware extends OperandAware {
     }
 
-    interface ExpressionOperandAware extends OperandAware {
+    protected interface ExpressionOperandAware extends OperandAware {
     }
 
-    static class WhereContext implements ConditionOperandAware {
-        Condition condition;
+    protected static class WhereContext implements ConditionOperandAware {
+        protected Condition condition;
 
         @Override
         public WhereContext add(Object operand) {
@@ -242,12 +242,12 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    static class ConditionContext {
+    protected static class ConditionContext {
     }
 
-    static class ReturnContext implements ExpressionOperandAware {
-        final List<Expression> expressions = new LinkedList<>();
-        LimitContext limitContext;
+    protected static class ReturnContext implements ExpressionOperandAware {
+        protected final List<Expression> expressions = new LinkedList<>();
+        protected LimitContext limitContext;
 
         @Override
         public ReturnContext add(Object operand) {
@@ -262,7 +262,7 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
 
     private final Deque<Object> operatorStack = new LinkedList<>();
 
-    void transformAndPushUp(Object operand) {
+    protected void transformAndPushUp(Object operand) {
         Object ancestorContext = operatorStack.peek();
         if (ancestorContext == null) {
             Object transformed = doTransform(operand);
@@ -278,14 +278,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    void enter(Statement statement) {
+    protected void enter(Statement statement) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), statement.getClass().getSimpleName());
         }
         operatorStack.push(new StatementContext(statement));
     }
 
-    void leave(Statement statement) {
+    protected void leave(Statement statement) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), statement.getClass().getSimpleName());
         }
@@ -398,14 +398,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(resultStatement);
     }
 
-    void enter(Subquery subquery) {
+    protected void enter(Subquery subquery) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), subquery.getClass().getSimpleName());
         }
         operatorStack.push(new SubqueryContext());
     }
 
-    void leave(Subquery subquery) {
+    protected void leave(Subquery subquery) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), subquery.getClass().getSimpleName());
         }
@@ -413,14 +413,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(subqueryContext);
     }
 
-    void enter(With with) {
+    protected void enter(With with) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), with.getClass().getSimpleName());
         }
         operatorStack.push(new WithContext());
     }
 
-    void leave(With with) {
+    protected void leave(With with) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), with.getClass().getSimpleName());
         }
@@ -428,14 +428,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(withContext);
     }
 
-    void enter(Return returning) {
+    protected void enter(Return returning) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), returning.getClass().getSimpleName());
         }
         operatorStack.push(new ReturnContext());
     }
 
-    void leave(Return returning) {
+    protected void leave(Return returning) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), returning.getClass().getSimpleName());
         }
@@ -443,9 +443,9 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(returnContext);
     }
 
-    class LimitContext implements OperandAware {
-        NumberLiteral numberLiteral;
-        Expression expression;
+    protected class LimitContext implements OperandAware {
+        protected NumberLiteral numberLiteral;
+        protected Expression expression;
 
         @Override
         public OperandAware add(Object operand) {
@@ -460,14 +460,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    void enter(Limit limit) {
+    protected void enter(Limit limit) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), limit.getClass().getSimpleName());
         }
         operatorStack.push(new LimitContext());
     }
 
-    void leave(Limit limit) {
+    protected void leave(Limit limit) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), limit.getClass().getSimpleName());
         }
@@ -475,20 +475,20 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(limitContext);
     }
 
-    void enter(NumberLiteral numberLiteral) {
+    protected void enter(NumberLiteral numberLiteral) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), numberLiteral.getClass().getSimpleName());
         }
     }
 
-    void leave(NumberLiteral numberLiteral) {
+    protected void leave(NumberLiteral numberLiteral) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), numberLiteral.getClass().getSimpleName());
         }
         transformAndPushUp(numberLiteral);
     }
 
-    void enter(Expression expression) {
+    protected void enter(Expression expression) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), expression.getClass().getSimpleName());
         }
@@ -503,27 +503,27 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(expression);
     }
 
-    void enter(Literal literal) {
+    protected void enter(Literal literal) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), literal.getClass().getSimpleName());
         }
     }
 
-    void leave(Literal literal) {
+    protected void leave(Literal literal) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), literal.getClass().getSimpleName());
         }
         transformAndPushUp(literal);
     }
 
-    void enter(Match match) {
+    protected void enter(Match match) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), match.getClass().getSimpleName());
         }
         operatorStack.push(new MatchContext(match, match.isOptional()));
     }
 
-    void leave(Match match) {
+    protected void leave(Match match) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), match.getClass().getSimpleName());
         }
@@ -531,26 +531,26 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(matchContext);
     }
 
-    interface TransformPredicate<T> {
+    protected interface TransformPredicate<T> {
         boolean shouldTransform(Deque<Object> operatorStack, T t);
     }
 
     @FunctionalInterface
-    interface TransformFunction<CONTEXT> {
+    protected interface TransformFunction<CONTEXT> {
         CONTEXT apply(Deque<Object> operatorStack, CONTEXT input);
     }
 
     protected static class TransformPredicateAndFunction<T> {
-        final TransformPredicate<T> predicate;
-        final TransformFunction<T> function;
+        protected final TransformPredicate<T> predicate;
+        protected final TransformFunction<T> function;
 
-        TransformPredicateAndFunction(TransformPredicate<T> predicate, TransformFunction<T> function) {
+        protected TransformPredicateAndFunction(TransformPredicate<T> predicate, TransformFunction<T> function) {
             this.predicate = predicate;
             this.function = function;
         }
     }
 
-    final Map<Class<?>, List<TransformPredicateAndFunction<?>>> transformers = new LinkedHashMap<>();
+    protected final Map<Class<?>, List<TransformPredicateAndFunction<?>>> transformers = new LinkedHashMap<>();
 
     public <T> GenericCypherDslQueryTransformer registerTransform(Class<T> clazz, TransformPredicate<T> predicate, TransformFunction<T> transformFunction) {
         List<TransformPredicateAndFunction<?>> transformPredicateAndFunctions = transformers.computeIfAbsent(clazz, key -> new LinkedList<>());
@@ -574,14 +574,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         return ctx;
     }
 
-    void enter(PatternElement patternElement) {
+    protected void enter(PatternElement patternElement) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), patternElement.getClass().getSimpleName());
         }
         operatorStack.push(new Object());
     }
 
-    void leave(PatternElement patternElement) {
+    protected void leave(PatternElement patternElement) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), patternElement.getClass().getSimpleName());
         }
@@ -589,14 +589,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(patternElement);
     }
 
-    void enter(Node node) {
+    protected void enter(Node node) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), node.getClass().getSimpleName());
         }
         operatorStack.push(new Object());
     }
 
-    void leave(Node node) {
+    protected void leave(Node node) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), node.getClass().getSimpleName());
         }
@@ -604,14 +604,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(node);
     }
 
-    void enter(RelationshipPattern relationshipPattern) {
+    protected void enter(RelationshipPattern relationshipPattern) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), relationshipPattern.getClass().getSimpleName());
         }
         operatorStack.push(new Object());
     }
 
-    void leave(RelationshipPattern relationshipPattern) {
+    protected void leave(RelationshipPattern relationshipPattern) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), relationshipPattern.getClass().getSimpleName());
         }
@@ -619,14 +619,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(relationshipPattern);
     }
 
-    void enter(ProcedureCall procedureCall) {
+    protected void enter(ProcedureCall procedureCall) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), procedureCall.getClass().getSimpleName());
         }
         operatorStack.push(new ProcedureCallContext().add(procedureCall));
     }
 
-    void leave(ProcedureCall procedureCall) {
+    protected void leave(ProcedureCall procedureCall) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), procedureCall.getClass().getSimpleName());
         }
@@ -634,14 +634,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(procedureCallContext);
     }
 
-    void enter(ProcedureName procedureName) {
+    protected void enter(ProcedureName procedureName) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), procedureName.getClass().getSimpleName());
         }
         operatorStack.push(new Object()); // protect procedure-arguments from seeing procedure namespace as the first argument
     }
 
-    void leave(ProcedureName procedureName) {
+    protected void leave(ProcedureName procedureName) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), procedureName.getClass().getSimpleName());
         }
@@ -649,28 +649,28 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(procedureName);
     }
 
-    void enter(YieldItems yieldItems) {
+    protected void enter(YieldItems yieldItems) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), yieldItems.getClass().getSimpleName());
         }
         operatorStack.push(new Object()); // protect procedureCallContext from interpreting this as an argument
     }
 
-    void leave(YieldItems yieldItems) {
+    protected void leave(YieldItems yieldItems) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), yieldItems.getClass().getSimpleName());
         }
         Object yieldItemsContext = (Object) operatorStack.pop();
     }
 
-    void enter(Where where) {
+    protected void enter(Where where) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), where.getClass().getSimpleName());
         }
         operatorStack.push(new WhereContext());
     }
 
-    void leave(Where where) {
+    protected void leave(Where where) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), where.getClass().getSimpleName());
         }
@@ -678,14 +678,14 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(whereContext.condition);
     }
 
-    void enter(Condition condition) {
+    protected void enter(Condition condition) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), condition.getClass().getSimpleName());
         }
         operatorStack.push(new ConditionContext());
     }
 
-    void leave(Condition condition) {
+    protected void leave(Condition condition) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), condition.getClass().getSimpleName());
         }
@@ -693,17 +693,17 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(condition);
     }
 
-    static class RelationshipContext {
+    protected static class RelationshipContext {
     }
 
-    void enter(Relationship relationship) {
+    protected void enter(Relationship relationship) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), relationship.getClass().getSimpleName());
         }
         operatorStack.push(new RelationshipContext());
     }
 
-    void leave(Relationship relationship) {
+    protected void leave(Relationship relationship) {
         if (debug) {
             System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), relationship.getClass().getSimpleName());
         }
