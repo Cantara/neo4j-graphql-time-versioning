@@ -207,7 +207,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i) RETURN i ORDER BY v.from DESC")
+                                                .value("MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i) WITH i ORDER BY v.from DESC RETURN i")
                                                 .build())
                                         .build()))
                                 .build())
