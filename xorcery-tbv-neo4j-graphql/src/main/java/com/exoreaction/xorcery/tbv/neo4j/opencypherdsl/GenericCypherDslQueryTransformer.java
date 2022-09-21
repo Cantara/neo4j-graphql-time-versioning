@@ -97,6 +97,10 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
             this.originalStatement = originalStatement;
         }
 
+        public Statement originalStatement() {
+            return originalStatement;
+        }
+
         @Override
         public StatementContext add(Object operand) {
             if (operand instanceof MatchContext matchContext) {
@@ -131,6 +135,10 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         protected MatchContext(Match originalMatch, boolean isOptional) {
             this.originalMatch = originalMatch;
             this.isOptional = isOptional;
+        }
+
+        public Match originalMatch() {
+            return originalMatch;
         }
 
         @Override
