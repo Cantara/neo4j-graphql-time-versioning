@@ -66,4 +66,66 @@ public class TimeVersioningCypherDslQueryTransformerTest {
                   group: userGroup
                 } AS user""");
     }
+
+
+    private static final String QUERY_2 = """
+            MATCH (person:Person)
+            WHERE person.name = $personName
+            CALL {
+            	WITH person
+            	CALL {
+            		WITH person
+            		WITH person AS this, $_tbv AS ver
+            		MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i) WITH i ORDER BY v.from DESC RETURN i AS person_history
+            	}
+            	RETURN collect(person_history {
+            		.name
+            	}) AS person_history
+            }
+            RETURN person {
+            	.id,
+            	.name,
+            	.gender,
+            	_history: person_history
+            } AS person
+            """;
+
+    @Test
+    public void thatOrderByAfterWithBeforeReturnInTimeVersionParameterWorks() {
+        Statement statement = CypherParser.parse(QUERY_2);
+
+        TimeVersioningCypherDslQueryTransformer transformer = new TimeVersioningCypherDslQueryTransformer(false);
+        statement.accept(transformer);
+        Statement transformedStatement = (Statement) transformer.getOutput();
+
+        Renderer renderer = Renderer.getRenderer(Configuration.prettyPrinting());
+
+        String renderedTransformed = renderer.render(transformedStatement);
+
+        assertEquals(renderedTransformed, """
+                MATCH (_r:Person_R)<-[_v:VERSION_OF]-(person)
+                WHERE (_v.from <= $_tbv
+                  AND coalesce($_tbv < _v.to, true)
+                  AND person.name = $personName)
+                CALL {
+                  WITH person
+                  CALL {
+                    WITH person
+                    WITH person AS this, $_tbv AS ver
+                    MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i)
+                    WITH i ORDER BY v.from DESC
+                    RETURN i AS person_history
+                  }
+                  RETURN collect(person_history {
+                    .name
+                  }) AS person_history
+                }
+                RETURN person {
+                  .id,
+                  .name,
+                  .gender,
+                  _history: person_history
+                } AS person""");
+    }
+
 }

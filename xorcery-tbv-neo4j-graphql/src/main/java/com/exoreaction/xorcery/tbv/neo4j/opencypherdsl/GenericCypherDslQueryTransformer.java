@@ -13,12 +13,15 @@ import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.Match;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.NumberLiteral;
+import org.neo4j.cypherdsl.core.Order;
 import org.neo4j.cypherdsl.core.PatternElement;
 import org.neo4j.cypherdsl.core.ProcedureCall;
+import org.neo4j.cypherdsl.core.Property;
 import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.ResultStatement;
 import org.neo4j.cypherdsl.core.Return;
+import org.neo4j.cypherdsl.core.SortItem;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.StatementBuilder;
 import org.neo4j.cypherdsl.core.Subquery;
@@ -198,13 +201,52 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
     }
 
-    protected static class WithContext implements ExpressionOperandAware {
+    protected static class SortItemContext implements ExpressionOperandAware, SortItemDirectionOperandAware {
+
+        Expression expression;
+        SortItem.Direction direction;
+
+        private SortItemContext withDirection(SortItem.Direction direction) {
+            this.direction = direction;
+            return this;
+        }
+
+        @Override
+        public SortItemContext add(Object operand) {
+            if (operand instanceof Expression expression) {
+                this.expression = expression;
+            } else if (operand instanceof SortItem.Direction direction) {
+                this.direction = direction;
+            }
+            return null;
+        }
+    }
+
+    protected static class OrderContext implements SortItemOperandAware {
+
+        final List<SortItem> sortItems = new ArrayList<>();
+
+        @Override
+        public SortItemContext add(Object operand) {
+            if (operand instanceof SortItem sortItem) {
+                this.sortItems.add(sortItem);
+            }
+            return null;
+        }
+    }
+
+    protected static class WithContext implements ExpressionOperandAware, OrderOperandAware {
 
         private final List<Expression> expressions = new LinkedList<>();
+        private OrderContext orderContext;
 
         @Override
         public WithContext add(Object operand) {
-            this.expressions.add((Expression) operand);
+            if (operand instanceof OrderContext orderContext) {
+                this.orderContext = orderContext;
+            } else if (operand instanceof Expression expression) {
+                this.expressions.add(expression);
+            }
             return this;
         }
     }
@@ -238,6 +280,15 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
     }
 
     protected interface ExpressionOperandAware extends OperandAware {
+    }
+
+    protected interface OrderOperandAware extends OperandAware {
+    }
+
+    protected interface SortItemOperandAware extends OperandAware {
+    }
+
+    protected interface SortItemDirectionOperandAware extends OperandAware {
     }
 
     protected static class WhereContext implements ConditionOperandAware {
@@ -305,17 +356,36 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         ExposesReturning exposesReturning = statementBuilder;
         ExposesWhere exposesWhere = null;
         StatementBuilder.OrderableOngoingReadingAndWithWithoutWhere orderableOngoingReadingAndWithWithoutWhere = null;
+        StatementBuilder.OrderableOngoingReadingAndWithWithWhere orderableOngoingReadingAndWithWithWhere = null;
         for (Object clause : statementContext.clauses) {
             if (clause instanceof WithContext withContext) {
                 if (exposesWith == null) {
                     orderableOngoingReadingAndWithWithoutWhere = statementBuilder.with(withContext.expressions);
+                    exposesWith = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesMatch = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesSubqueryCall = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesReturning = orderableOngoingReadingAndWithWithoutWhere;
+                    if (withContext.orderContext != null) {
+                        orderableOngoingReadingAndWithWithWhere = orderableOngoingReadingAndWithWithoutWhere.orderBy(withContext.orderContext.sortItems);
+                        exposesWith = orderableOngoingReadingAndWithWithWhere;
+                        exposesMatch = orderableOngoingReadingAndWithWithWhere;
+                        exposesSubqueryCall = orderableOngoingReadingAndWithWithWhere;
+                        exposesReturning = orderableOngoingReadingAndWithWithWhere;
+                    }
                 } else {
                     orderableOngoingReadingAndWithWithoutWhere = exposesWith.with(withContext.expressions);
+                    exposesWith = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesMatch = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesSubqueryCall = orderableOngoingReadingAndWithWithoutWhere;
+                    exposesReturning = orderableOngoingReadingAndWithWithoutWhere;
+                    if (withContext.orderContext != null) {
+                        orderableOngoingReadingAndWithWithWhere = orderableOngoingReadingAndWithWithoutWhere.orderBy(withContext.orderContext.sortItems);
+                        exposesWith = orderableOngoingReadingAndWithWithWhere;
+                        exposesMatch = orderableOngoingReadingAndWithWithWhere;
+                        exposesSubqueryCall = orderableOngoingReadingAndWithWithWhere;
+                        exposesReturning = orderableOngoingReadingAndWithWithWhere;
+                    }
                 }
-                exposesWith = orderableOngoingReadingAndWithWithoutWhere;
-                exposesMatch = orderableOngoingReadingAndWithWithoutWhere;
-                exposesSubqueryCall = orderableOngoingReadingAndWithWithoutWhere;
-                exposesReturning = orderableOngoingReadingAndWithWithoutWhere;
             } else if (clause instanceof SubqueryContext subqueryContext) {
                 StatementBuilder.OngoingReadingWithoutWhere ongoingReadingWithoutWhere = exposesSubqueryCall.call(subqueryContext.statement);
                 exposesWith = ongoingReadingWithoutWhere;
@@ -326,7 +396,12 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
             } else if (clause instanceof ProcedureCallContext procedureCallContext) {
                 String qualifiedProcedureName = procedureCallContext.procedureName.getQualifiedName();
                 ExposesCall.ExposesYield<StatementBuilder.OngoingInQueryCallWithReturnFields> exposesYield;
-                StatementBuilder.OngoingInQueryCallWithoutArguments ongoingInQueryCallWithoutArguments = orderableOngoingReadingAndWithWithoutWhere.call(qualifiedProcedureName);
+                StatementBuilder.OngoingInQueryCallWithoutArguments ongoingInQueryCallWithoutArguments;
+                if (orderableOngoingReadingAndWithWithWhere != null) {
+                    ongoingInQueryCallWithoutArguments = orderableOngoingReadingAndWithWithWhere.call(qualifiedProcedureName);
+                } else {
+                    ongoingInQueryCallWithoutArguments = orderableOngoingReadingAndWithWithoutWhere.call(qualifiedProcedureName);
+                }
                 exposesYield = ongoingInQueryCallWithoutArguments;
                 if (procedureCallContext.arguments.size() > 0) {
                     StatementBuilder.OngoingInQueryCallWithArguments ongoingInQueryCallWithArguments = ongoingInQueryCallWithoutArguments
@@ -511,6 +586,21 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         transformAndPushUp(expression);
     }
 
+    protected void enter(Property property) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), property.getClass().getSimpleName());
+        }
+        operatorStack.push(new Object());
+    }
+
+    void leave(Property property) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), property.getClass().getSimpleName());
+        }
+        operatorStack.pop();
+        transformAndPushUp(property);
+    }
+
     protected void enter(Literal literal) {
         if (debug) {
             System.out.printf("%sENTER %s%n", "| ".repeat(depth), literal.getClass().getSimpleName());
@@ -537,6 +627,50 @@ public class GenericCypherDslQueryTransformer extends ReflectiveVisitor {
         }
         MatchContext matchContext = (MatchContext) operatorStack.pop();
         transformAndPushUp(matchContext);
+    }
+
+    protected void enter(Order order) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), order.getClass().getSimpleName());
+        }
+        operatorStack.push(new OrderContext());
+    }
+
+    protected void leave(Order order) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), order.getClass().getSimpleName());
+        }
+        OrderContext orderContext = (OrderContext) operatorStack.pop();
+        transformAndPushUp(orderContext);
+    }
+
+    protected void enter(SortItem sortItem) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), sortItem.getClass().getSimpleName());
+        }
+        operatorStack.push(new SortItemContext());
+    }
+
+    protected void leave(SortItem sortItem) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), sortItem.getClass().getSimpleName());
+        }
+        SortItemContext sortItemContext = (SortItemContext) operatorStack.pop();
+        // TODO for now context is discarded -- no way to transform context back to SortItem instance
+        transformAndPushUp(sortItem);
+    }
+
+    protected void enter(SortItem.Direction direction) {
+        if (debug) {
+            System.out.printf("%sENTER %s%n", "| ".repeat(depth), direction.getClass().getSimpleName());
+        }
+    }
+
+    protected void leave(SortItem.Direction direction) {
+        if (debug) {
+            System.out.printf("%sLEAVE %s%n", "| ".repeat(depth), direction.getClass().getSimpleName());
+        }
+        transformAndPushUp(direction);
     }
 
     protected interface TransformPredicate<T> {
