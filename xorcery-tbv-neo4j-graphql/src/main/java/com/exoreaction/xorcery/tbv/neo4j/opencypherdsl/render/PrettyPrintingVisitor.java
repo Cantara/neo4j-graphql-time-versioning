@@ -46,8 +46,7 @@ import java.util.function.BiConsumer;
  * @author Andreas Berger
  * @author Michael J. Simons
  */
-@SuppressWarnings("unused")
-public class PrettyPrintingVisitor extends DefaultVisitor {
+@SuppressWarnings("unused")public class PrettyPrintingVisitor extends DefaultVisitor {
 
 	private final BiConsumer<StringBuilder, Integer> indentionProvider;
 
@@ -296,3 +295,4 @@ public class PrettyPrintingVisitor extends DefaultVisitor {
 		}
 	}
 }
+

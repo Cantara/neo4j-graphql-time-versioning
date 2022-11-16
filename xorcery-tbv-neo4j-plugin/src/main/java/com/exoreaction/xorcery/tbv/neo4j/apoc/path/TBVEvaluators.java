@@ -52,12 +52,12 @@ public abstract class TBVEvaluators {
     static int computePathLength(Path path) {
         int pathLength = path.length();
         for (Relationship r : path.relationships()) {
-            if (r.isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
+            if (r.isType(TBVConstants.RELATIONSHIP_TYPE_VERSION)) {
                 pathLength--;
             }
         }
         if (path.endNode().hasLabel(TBVConstants.LABEL_RESOURCE)) {
-            if (path.lastRelationship() != null && !path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
+            if (path.lastRelationship() != null && !path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION)) {
                 pathLength--;
             }
         }

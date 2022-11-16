@@ -12,10 +12,10 @@
     <inceptionYear>2022</inceptionYear>
 
     <properties>
-        <java.version>11</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
         <module.build.sourceEncoding>UTF-8</module.build.sourceEncoding>
         <jackson.version>2.13.4.20221012</jackson.version>
-        <slf4j.version>1.7.36</slf4j.version>
+        <slf4j.version>2.0.3</slf4j.version>
     </properties>
 
     <licenses>
@@ -44,11 +44,8 @@
 
     <modules>
         <module>xorcery-tbv-api</module>
-        <module>xorcery-tbv-neo4j</module>
         <module>xorcery-tbv-neo4j-graphql</module>
         <module>xorcery-tbv-neo4j-plugin</module>
-        <module>xorcery-tbv-sample</module>
-        <module>xorcery-tbv-test</module>
     </modules>
 
     <dependencyManagement>
@@ -151,59 +148,6 @@
                                 <id>attach-sources</id>
                                 <goals>
                                     <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.4.1</version>
-                        <configuration>
-                            <encoding>UTF-8</encoding>
-                            <additionalOptions>-Xdoclint:none</additionalOptions>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>coverage</id>
-            <properties>
-                <sonar.coverage.jacoco.xmlReportPaths>
-                    target/site/jacoco/jacoco.xml
-                </sonar.coverage.jacoco.xmlReportPaths>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.sonarsource.scanner.maven</groupId>
-                        <artifactId>sonar-maven-plugin</artifactId>
-                        <version>3.9.1.2184</version>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.jacoco</groupId>
-                        <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.8.8</version>
-                        <executions>
-                            <execution>
-                                <id>prepare-agent</id>
-                                <goals>
-                                    <goal>prepare-agent</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>report</id>
-                                <goals>
-                                    <goal>report</goal>
                                 </goals>
                             </execution>
                         </executions>

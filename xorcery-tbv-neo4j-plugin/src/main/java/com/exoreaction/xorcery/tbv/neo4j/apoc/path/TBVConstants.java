@@ -7,7 +7,7 @@ import org.neo4j.graphdb.RelationshipType;
 import java.util.Collections;
 
 public class TBVConstants {
-    static final RelationshipType RELATIONSHIP_TYPE_VERSION_OF = RelationshipType.withName("VERSION_OF");
+    static final RelationshipType RELATIONSHIP_TYPE_VERSION = RelationshipType.withName("VERSION");
     public static final Label LABEL_RESOURCE = Label.label("RESOURCE");
     public static final Label LABEL_INSTANCE = Label.label("INSTANCE");
     public static final Label LABEL_EMBEDDED = Label.label("EMBEDDED");

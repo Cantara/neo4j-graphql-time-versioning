@@ -28,7 +28,7 @@ public class CypherDslQueryTransformerTest {
               CALL {
                 WITH user
                 WITH user AS this
-                MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
+                MATCH (this)-[:group]->(:RESOURCE)-[v:VERSION]->(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
               }
               RETURN collect(userGroup {
                 .name
@@ -49,7 +49,7 @@ public class CypherDslQueryTransformerTest {
                                 .with(name("user").as("this"))
                                 .match(anyNode("this")
                                         .relationshipTo(node("RESOURCE"), "group")
-                                        .relationshipFrom(anyNode("n"), "VERSION_OF").named("v")
+                                        .relationshipTo(anyNode("n"), "VERSION").named("v")
                                 )
                                 .where(name("v").property("from").lte(name("ver"))
                                         .and(Functions.coalesce(name("ver").lt(name("v").property("to")), Cypher.literalTrue()).asCondition())

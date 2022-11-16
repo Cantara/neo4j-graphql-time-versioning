@@ -18,7 +18,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
             	CALL {
             		WITH user
             		WITH user AS this, $_tbv AS ver
-            		MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
+            		MATCH (this)-[:group]->(:RESOURCE)-[v:VERSION]->(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
             	}
             	RETURN collect(userGroup {
             		.name
@@ -43,7 +43,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
         String renderedTransformed = renderer.render(transformedStatement);
 
         assertEquals(renderedTransformed, """
-                MATCH (_r:User_R)<-[_v:VERSION_OF]-(user)
+                MATCH (_r:User_R)-[_v:VERSION]->(user)
                 WHERE (_v.from <= $_tbv
                   AND coalesce($_tbv < _v.to, true)
                   AND user.id = $userId)
@@ -52,7 +52,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
                   CALL {
                     WITH user
                     WITH user AS this, $_tbv AS ver
-                    MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n)
+                    MATCH (this)-[:group]->(:RESOURCE)-[v:VERSION]->(n)
                     WHERE (v.from <= ver
                       AND coalesce(ver < v.to, true))
                     RETURN n AS userGroup
@@ -76,7 +76,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
             	CALL {
             		WITH person
             		WITH person AS this, $_tbv AS ver
-            		MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i) WITH i ORDER BY v.from DESC RETURN i AS person_history
+            		MATCH (this)<-[:VERSION]-(r)-[v:VERSION]->(i) WITH i ORDER BY v.from DESC RETURN i AS person_history
             	}
             	RETURN collect(person_history {
             		.name
@@ -103,7 +103,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
         String renderedTransformed = renderer.render(transformedStatement);
 
         assertEquals(renderedTransformed, """
-                MATCH (_r:Person_R)<-[_v:VERSION_OF]-(person)
+                MATCH (_r:Person_R)-[_v:VERSION]->(person)
                 WHERE (_v.from <= $_tbv
                   AND coalesce($_tbv < _v.to, true)
                   AND person.name = $personName)
@@ -112,7 +112,7 @@ public class TimeVersioningCypherDslQueryTransformerTest {
                   CALL {
                     WITH person
                     WITH person AS this, $_tbv AS ver
-                    MATCH (this)-[:VERSION_OF]->(r)<-[v:VERSION_OF]-(i)
+                    MATCH (this)<-[:VERSION]-(r)-[v:VERSION]->(i)
                     WITH i ORDER BY v.from DESC
                     RETURN i AS person_history
                   }

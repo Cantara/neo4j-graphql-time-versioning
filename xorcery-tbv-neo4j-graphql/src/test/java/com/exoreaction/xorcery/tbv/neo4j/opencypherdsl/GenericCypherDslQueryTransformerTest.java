@@ -18,7 +18,7 @@ public class GenericCypherDslQueryTransformerTest {
               CALL {
                 WITH user
                 WITH user AS this
-                MATCH (this)-[:group]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
+                MATCH (this)-[:group]->(:RESOURCE)-[v:VERSION]->(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n AS userGroup
               }
               RETURN collect(userGroup {
                 .name

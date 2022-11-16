@@ -76,7 +76,7 @@ public class TimeVersioningCypherDslQueryTransformer extends GenericCypherDslQue
         }
         String nodeIdentifierLiteral = m.group(1);
         String nodeTypeLiteral = m.group(2);
-        String modifiedResult = String.format("(_r:%s_R)<-[_v:VERSION_OF]-(%s)", nodeTypeLiteral, nodeIdentifierLiteral);
+        String modifiedResult = String.format("(_r:%s_R)-[_v:VERSION]->(%s)", nodeTypeLiteral, nodeIdentifierLiteral);
         return modifiedResult;
     }
 

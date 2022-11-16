@@ -1,13 +1,7 @@
 package com.exoreaction.xorcery.tbv.neo4j.apoc.path;
 
 import apoc.path.RelationshipTypeAndDirections;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.PathExpander;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
@@ -91,7 +85,7 @@ public class RelationshipSequenceExpander implements PathExpander {
     }
 
     @Override
-    public Iterable<Relationship> expand(Path path, BranchState state) {
+    public ResourceIterable<Relationship> expand(Path path, BranchState state) {
         final Node node = path.endNode();
         int depth = TBVEvaluators.computePathLength(path);
         List<Pair<RelationshipType, Direction>> stepRels;
@@ -108,10 +102,10 @@ public class RelationshipSequenceExpander implements PathExpander {
             List<Relationship> excludes = new ArrayList<>();
             List<Relationship> relationshipsToExpand = new ArrayList<>();
             Relationship lastRelationship = path.lastRelationship();
-            if (lastRelationship != null && !lastRelationship.isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
-                Relationship resolvedVersionRelationship = resolveTimeBaseVersioningRelationship(node, Direction.INCOMING);
+            if (lastRelationship != null && !lastRelationship.isType(TBVConstants.RELATIONSHIP_TYPE_VERSION)) {
+                Relationship resolvedVersionRelationship = resolveTimeBaseVersioningRelationship(node, Direction.OUTGOING);
                 if (resolvedVersionRelationship == null) {
-                    return Iterables.empty(); // do not expand any relationships if resource does not have a valid instance
+                    return Iterables.emptyResourceIterable(); // do not expand any relationships if resource does not have a valid instance
                 }
                 relationshipsToExpand.add(resolvedVersionRelationship);
                 excludes.add(lastRelationship);
@@ -134,7 +128,7 @@ public class RelationshipSequenceExpander implements PathExpander {
                             return filterValidIncomingLinks(node.getRelationships(Direction.INCOMING, types), excludes).iterator();
                         }
                     }));
-            return relationshipsToExpand;
+            return Iterables.asResourceIterable(relationshipsToExpand);
         }
 
         if (node.hasLabel(TBVConstants.LABEL_INSTANCE)) {
@@ -142,11 +136,11 @@ public class RelationshipSequenceExpander implements PathExpander {
              * Last node in path is an INSTANCE node
              */
             List<Relationship> relationshipsToExpand = new ArrayList<>();
-            if (path.lastRelationship() == null || !path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION_OF)) {
+            if (path.lastRelationship() == null || !path.lastRelationship().isType(TBVConstants.RELATIONSHIP_TYPE_VERSION)) {
                 // the resource of this instance must be expanded
-                Relationship validVersionOf = resolveTimeBaseVersioningRelationship(node, Direction.OUTGOING);
+                Relationship validVersionOf = resolveTimeBaseVersioningRelationship(node, Direction.INCOMING);
                 if (validVersionOf == null) {
-                    return Iterables.empty(); // invalid instance, this should really not happen
+                    return Iterables.emptyResourceIterable(); // invalid instance, this should really not happen
                 }
                 relationshipsToExpand.add(validVersionOf);
             }
@@ -168,7 +162,7 @@ public class RelationshipSequenceExpander implements PathExpander {
                             return node.getRelationships(Direction.OUTGOING, types).iterator();
                         }
                     }));
-            return relationshipsToExpand;
+            return Iterables.asResourceIterable(relationshipsToExpand);
         }
 
         if (node.hasLabel(TBVConstants.LABEL_EMBEDDED)) {
@@ -233,7 +227,7 @@ public class RelationshipSequenceExpander implements PathExpander {
                             }
                         }));
             }
-            return relationshipsToExpand;
+            return Iterables.asResourceIterable(relationshipsToExpand);
         }
         throw new IllegalStateException("Graph data is not xorcery tbv compatible");
     }
@@ -241,7 +235,7 @@ public class RelationshipSequenceExpander implements PathExpander {
     private RelationshipType[] getRelationshipTypesExceptVersionOf(Node node) {
         List<RelationshipType> typeList = new ArrayList<>();
         for (RelationshipType rt : node.getRelationshipTypes()) {
-            if (!TBVConstants.RELATIONSHIP_TYPE_VERSION_OF.equals(rt)) {
+            if (!TBVConstants.RELATIONSHIP_TYPE_VERSION.equals(rt)) {
                 typeList.add(rt);
             }
         }
@@ -270,7 +264,7 @@ public class RelationshipSequenceExpander implements PathExpander {
                 }
             }
             // node.hasLabel(LABEL_INSTANCE) == true
-            Iterator<Relationship> iterator = node.getRelationships(Direction.OUTGOING, TBVConstants.RELATIONSHIP_TYPE_VERSION_OF).iterator();
+            Iterator<Relationship> iterator = node.getRelationships(Direction.OUTGOING, TBVConstants.RELATIONSHIP_TYPE_VERSION).iterator();
             Relationship versionOf = null;
             if (iterator.hasNext()) {
                 versionOf = iterator.next();
@@ -288,7 +282,7 @@ public class RelationshipSequenceExpander implements PathExpander {
 
     private boolean isVersionValid(Relationship versionOf) {
         long from = (Long) versionOf.getProperty("from");
-        if (from >snapshot) {
+        if (from > snapshot) {
             return false;
         }
         if (!versionOf.hasProperty("to")) {
@@ -302,7 +296,7 @@ public class RelationshipSequenceExpander implements PathExpander {
     }
 
     private Relationship resolveTimeBaseVersioningRelationship(Node node, Direction direction) {
-        Iterable<Relationship> versionOfRelations = node.getRelationships(direction, TBVConstants.RELATIONSHIP_TYPE_VERSION_OF);
+        Iterable<Relationship> versionOfRelations = node.getRelationships(direction, TBVConstants.RELATIONSHIP_TYPE_VERSION);
         Iterator<Relationship> iterator = versionOfRelations.iterator();
         while (iterator.hasNext()) {
             Relationship relationship = iterator.next();

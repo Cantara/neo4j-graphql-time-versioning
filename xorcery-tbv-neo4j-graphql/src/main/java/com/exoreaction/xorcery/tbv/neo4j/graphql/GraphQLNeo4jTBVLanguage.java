@@ -163,7 +163,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[:VERSION_OF]->(r) RETURN r.id")
+                                                .value("MATCH (this)<-[:VERSION]-(r) RETURN r.id")
                                                 .build())
                                         .build()))
                                 .build())
@@ -183,7 +183,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[:VERSION_OF]->(r) RETURN r")
+                                                .value("MATCH (this)<-[:VERSION]-(r) RETURN r")
                                                 .build())
                                         .build()))
                                 .build())
@@ -207,7 +207,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[:VERSION_OF]->(r) MATCH (r)<-[v:VERSION_OF]-(i) WITH i ORDER BY v.from DESC RETURN i")
+                                                .value("MATCH (this)<-[:VERSION]-(r) MATCH (r)-[v:VERSION]->(i) WITH i ORDER BY v.from DESC RETURN i")
                                                 .build())
                                         .build()))
                                 .build())
@@ -227,7 +227,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[v:VERSION_OF]->(r) RETURN v.from")
+                                                .value("MATCH (this)<-[v:VERSION]->(r) RETURN v.from")
                                                 .build())
                                         .build()))
                                 .build())
@@ -245,7 +245,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[v:VERSION_OF]->(r) RETURN v.to")
+                                                .value("MATCH (this)<-[v:VERSION]-(r) RETURN v.to")
                                                 .build())
                                         .build()))
                                 .build())
@@ -266,7 +266,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[v:VERSION_OF]->(r) RETURN apoc.temporal.format(v.from, 'ISO_DATE_TIME')")
+                                                .value("MATCH (this)<-[v:VERSION]-(r) RETURN apoc.temporal.format(v.from, 'ISO_DATE_TIME')")
                                                 .build())
                                         .build()))
                                 .build())
@@ -284,7 +284,7 @@ public class GraphQLNeo4jTBVLanguage {
                                 .arguments(List.of(Argument.newArgument()
                                         .name("statement")
                                         .value(StringValue.newStringValue()
-                                                .value("MATCH (this)-[v:VERSION_OF]->(r) RETURN CASE WHEN v.to IS NULL THEN null ELSE apoc.temporal.format(v.to, 'ISO_DATE_TIME') END")
+                                                .value("MATCH (this)<-[v:VERSION]-(r) RETURN CASE WHEN v.to IS NULL THEN null ELSE apoc.temporal.format(v.to, 'ISO_DATE_TIME') END")
                                                 .build())
                                         .build()))
                                 .build())
@@ -327,7 +327,7 @@ public class GraphQLNeo4jTBVLanguage {
                                     Argument.newArgument()
                                             .name("name")
                                             .value(StringValue.newStringValue()
-                                                    .value("VERSION_OF")
+                                                    .value("VERSION")
                                                     .build())
                                             .build(),
                                     Argument.newArgument()
@@ -477,7 +477,7 @@ public class GraphQLNeo4jTBVLanguage {
                 boolean isLink = field.hasDirective("link");
                 if (isLink) {
                     String relationName = field.getName();
-                    String tbvResolutionCypher = String.format("MATCH (this)-[:%s]->(:RESOURCE)<-[v:VERSION_OF]-(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n", relationName);
+                    String tbvResolutionCypher = String.format("MATCH (this)-[:%s]->(:RESOURCE)-[v:VERSION]->(n) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n", relationName);
 
                     FieldDefinition transformedField = field.transform(builder -> builder
                             .directives(List.of(
@@ -663,7 +663,7 @@ public class GraphQLNeo4jTBVLanguage {
                             for (Deque<ObjectAndField> concretePath : concretePaths) {
                                 String nameOfPath = resolveReverseLinkFieldName(concretePath);
                                 String codedNameOfRelationship = "reverse";
-                                StringBuilder sb = new StringBuilder("MATCH (this)-[:VERSION_OF]->(:RESOURCE)");
+                                StringBuilder sb = new StringBuilder("MATCH (this)<-[:VERSION]-(:RESOURCE)");
                                 Deque<ObjectAndField> workPath = new LinkedList<>(concretePath);
                                 boolean nNotBound = true;
                                 while (workPath.size() > 1) {
@@ -682,7 +682,7 @@ public class GraphQLNeo4jTBVLanguage {
                                     sb.append("n");
                                 }
                                 sb.append(":").append(last.objectName).append("_I").append(")");
-                                sb.append("-[v:VERSION_OF]->(:RESOURCE) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n");
+                                sb.append("<-[v:VERSION]-(:RESOURCE) WHERE v.from <= ver AND coalesce(ver < v.to, true) RETURN n");
                                 String tbvReverseResolutionCypher = sb.toString();
                                 LOG.trace("REVERSE LINK CYPHER to Object {}: {}", targetObjectType.getName(), tbvReverseResolutionCypher);
                                 codedNameOfRelationship += "_" + last.fieldName + "_" + last.objectName;
