@@ -1,12 +1,19 @@
 package com.exoreaction.xorcery.tbv.neo4j.apoc.path;
 
 import apoc.path.RelationshipTypeAndDirections;
-import org.neo4j.graphdb.*;
+import org.apache.commons.lang3.tuple.Pair;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.PathExpander;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterable;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.helpers.collection.NestingIterator;
-import org.neo4j.internal.helpers.collection.Pair;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +50,7 @@ public class RelationshipSequenceExpander implements PathExpander {
         } else {
             for (String sequenceStep : relSequenceString.split(",")) {
                 sequenceStep = sequenceStep.trim();
-                Iterable<Pair<RelationshipType, Direction>> relDirIterable = RelationshipTypeAndDirections.parse(sequenceStep);
+                List<Pair<RelationshipType, Direction>> relDirIterable = RelationshipTypeAndDirections.parse(sequenceStep);
 
                 List<Pair<RelationshipType, Direction>> stepRels = new ArrayList<>();
                 for (Pair<RelationshipType, Direction> pair : relDirIterable) {
@@ -67,7 +74,7 @@ public class RelationshipSequenceExpander implements PathExpander {
 
         for (String sequenceStep : relSequenceList) {
             sequenceStep = sequenceStep.trim();
-            Iterable<Pair<RelationshipType, Direction>> relDirIterable = RelationshipTypeAndDirections.parse(sequenceStep);
+            List<Pair<RelationshipType, Direction>> relDirIterable = RelationshipTypeAndDirections.parse(sequenceStep);
 
             List<Pair<RelationshipType, Direction>> stepRels = new ArrayList<>();
             for (Pair<RelationshipType, Direction> pair : relDirIterable) {
@@ -116,11 +123,11 @@ public class RelationshipSequenceExpander implements PathExpander {
                         @Override
                         protected Iterator<Relationship> createNestedIterator(
                                 Pair<RelationshipType, Direction> entry) {
-                            Direction dir = entry.other();
+                            Direction dir = entry.getRight();
                             if (dir == Direction.OUTGOING) {
                                 return EMPTY.iterator();
                             }
-                            RelationshipType type = entry.first();
+                            RelationshipType type = entry.getLeft();
                             if (type != null) {
                                 return filterValidIncomingLinks(node.getRelationships(Direction.INCOMING, type), excludes).iterator();
                             }
@@ -150,11 +157,11 @@ public class RelationshipSequenceExpander implements PathExpander {
                         @Override
                         protected Iterator<Relationship> createNestedIterator(
                                 Pair<RelationshipType, Direction> entry) {
-                            Direction dir = entry.other();
+                            Direction dir = entry.getRight();
                             if (dir == Direction.INCOMING) {
                                 return EMPTY.iterator();
                             }
-                            RelationshipType type = entry.first();
+                            RelationshipType type = entry.getLeft();
                             if (type != null) {
                                 return node.getRelationships(Direction.OUTGOING, type).iterator();
                             }
@@ -177,11 +184,11 @@ public class RelationshipSequenceExpander implements PathExpander {
                             @Override
                             protected Iterator<Relationship> createNestedIterator(
                                     Pair<RelationshipType, Direction> entry) {
-                                Direction dir = entry.other();
+                                Direction dir = entry.getRight();
                                 if (dir == Direction.INCOMING) {
                                     return EMPTY.iterator();
                                 }
-                                RelationshipType type = entry.first();
+                                RelationshipType type = entry.getLeft();
                                 if (type != null) {
                                     return node.getRelationships(Direction.OUTGOING, type).iterator();
                                 }
@@ -205,11 +212,11 @@ public class RelationshipSequenceExpander implements PathExpander {
                             @Override
                             protected Iterator<Relationship> createNestedIterator(
                                     Pair<RelationshipType, Direction> entry) {
-                                Direction dir = entry.other();
+                                Direction dir = entry.getRight();
                                 if (dir == Direction.INCOMING) {
                                     return EMPTY.iterator();
                                 }
-                                RelationshipType type = entry.first();
+                                RelationshipType type = entry.getLeft();
                                 if (type != null) {
                                     if (!path.lastRelationship().isType(type)) {
                                         return node.getRelationships(Direction.OUTGOING, type).iterator();
