@@ -64,74 +64,32 @@
             <artifactId>apoc-common</artifactId>
             <version>${neo4j.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.exoreaction.xorcery</groupId>
-            <artifactId>neo4j-apoc-jpms-shaded</artifactId>
-            <version>5.1.0.1</version>
-        </dependency>
 
-        <!--
-                <dependency>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j-graphdb-api</artifactId>
-                    <version>${neo4j.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j-procedure-api</artifactId>
-                    <version>${neo4j.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j-logging</artifactId>
-                    <version>${neo4j.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j-graph-algo</artifactId>
-                    <version>${neo4j.version}</version>
-                </dependency>
-        -->
-
-        <!-- Test Dependencies
         <dependency>
-            <groupId>org.neo4j.test</groupId>
-            <artifactId>neo4j-harness</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-graphdb-api</artifactId>
             <version>${neo4j.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>provided</scope>
         </dependency>
-        -->
-
-<!--
         <dependency>
-            <groupId>org.neo4j.community</groupId>
-            <artifactId>it-test-support</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-procedure-api</artifactId>
             <version>${neo4j.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.neo4j</groupId>
-                    <artifactId>neo4j</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>provided</scope>
         </dependency>
--->
-<!--
-
         <dependency>
-            &lt;!&ndash; Used to send cypher statements to our procedure. &ndash;&gt;
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-            <version>${neo4j-java-driver.version}</version>
-            <scope>test</scope>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-logging</artifactId>
+            <version>${neo4j.version}</version>
+            <scope>provided</scope>
         </dependency>
--->
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-graph-algo</artifactId>
+            <version>${neo4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
