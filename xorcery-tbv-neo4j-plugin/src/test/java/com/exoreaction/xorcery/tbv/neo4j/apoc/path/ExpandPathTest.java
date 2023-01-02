@@ -34,7 +34,7 @@ public class ExpandPathTest {
     public static void setUp() {
         TestUtil.registerProcedure(db, PathExplorer.class);
         String movies = Util.readResourceFile("movies-tbv.cypher");
-        String bigbrother = "MATCH (per:Person)-[:VERSION_OF]->(per_R) MERGE (bb:BigBrother:INSTANCE {name : 'Big Brother' }) MERGE (bb_R:BigBrother_R:RESOURCE {id : 'bb'}) MERGE (bb)-[:VERSION_OF {from: datetime('2020-01-01T00:00:00.000+01:00[Europe/Oslo]').epochMillis}]->(bb_R) MERGE (bb)-[:FOLLOWS]->(per_R)";
+        String bigbrother = "MATCH (per:Person)<-[:VERSION]-(per_R) MERGE (bb:BigBrother:INSTANCE {name : 'Big Brother' }) MERGE (bb_R:BigBrother_R:RESOURCE {id : 'bb'}) MERGE (bb)<-[:VERSION {from: datetime('2020-01-01T00:00:00.000+01:00[Europe/Oslo]').epochMillis}]-(bb_R) MERGE (bb)-[:FOLLOWS]->(per_R)";
         try (Transaction tx = db.beginTx()) {
             tx.execute(movies);
             tx.execute(bigbrother);
