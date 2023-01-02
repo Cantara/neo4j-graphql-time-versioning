@@ -271,7 +271,7 @@ public class RelationshipSequenceExpander implements PathExpander {
                 }
             }
             // node.hasLabel(LABEL_INSTANCE) == true
-            Iterator<Relationship> iterator = node.getRelationships(Direction.OUTGOING, TBVConstants.RELATIONSHIP_TYPE_VERSION).iterator();
+            Iterator<Relationship> iterator = node.getRelationships(Direction.INCOMING, TBVConstants.RELATIONSHIP_TYPE_VERSION).iterator();
             Relationship versionOf = null;
             if (iterator.hasNext()) {
                 versionOf = iterator.next();
