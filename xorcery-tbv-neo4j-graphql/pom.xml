@@ -20,11 +20,11 @@
     </properties>
 
     <dependencies>
-                <dependency>
-                    <groupId>com.exoreaction.xorcery</groupId>
-                    <artifactId>xorcery-tbv-api</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
+        <dependency>
+            <groupId>com.exoreaction.xorcery</groupId>
+            <artifactId>xorcery-tbv-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl</artifactId>
