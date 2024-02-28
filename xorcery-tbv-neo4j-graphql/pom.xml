@@ -68,7 +68,7 @@
             <!-- TODO replace with https://github.com/java-json-tools/json-schema-validator to get Jackson support -->
             <groupId>com.github.erosb</groupId>
             <artifactId>everit-json-schema</artifactId>
-            <version>1.14.3</version>
+            <version>1.14.4</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
